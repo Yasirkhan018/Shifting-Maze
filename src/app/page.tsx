@@ -13,8 +13,10 @@ import { toggleAdjacentTile } from "@/ai/flows/toggle-adjacent-tile";
 import { mutateRules } from "@/ai/flows/mutate-rules";
 import { generateHint } from "@/ai/flows/generate-hint-flow";
 import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
-import { Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Zap, Lightbulb, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 export default function ShiftingMazePage() {
@@ -88,17 +90,16 @@ export default function ShiftingMazePage() {
     if (isLoading || isGameWon) return;
 
     setIsLoading(true);
-    setRulesReasoning(undefined);
+    setRulesReasoning(undefined); // Clear previous reasoning
     setToggledByAi([]);
-    // Don't clear hint immediately, only if not a hint turn or on new hint fetch
-
+    
     const newMoveCount = moveCount + 1;
     setMoveCount(newMoveCount);
 
     let tempGrid = grid.map((r, rIdx) =>
       r.map((c, cIdx) => (rIdx === row && cIdx === col ? !c : c))
     );
-    setGrid(tempGrid); // Optimistic update for clicked tile
+    setGrid(tempGrid); 
     setToggledByAi([{row, col}]);
 
     try {
@@ -108,14 +109,13 @@ export default function ShiftingMazePage() {
       tempGrid = tempGrid.map((r, rIdx) =>
         r.map((c, cIdx) => (rIdx === adjacentRow && cIdx === adjacentCol ? !c : c))
       );
-      setGrid(tempGrid); // Update for AI toggled tile
+      setGrid(tempGrid); 
       setToggledByAi(prev => [...prev, {row: adjacentRow, col: adjacentCol}]);
 
       const ruleMutationResult = await mutateRules({ currentRules, moveNumber: newMoveCount, gridSize });
       setCurrentRules(ruleMutationResult.newRules);
-      setRulesReasoning(ruleMutationResult.reasoning);
+      setRulesReasoning(ruleMutationResult.reasoning); // Set new reasoning
 
-      // Hint generation logic
       if (newMoveCount > 0 && !checkWinCondition(tempGrid)) {
          const shouldGenerateHint = (newMoveCount >= 15) || (newMoveCount < 15 && newMoveCount % 5 === 0);
 
@@ -143,12 +143,11 @@ export default function ShiftingMazePage() {
             setIsHintLoading(false);
           }
         } else {
-          // If it's not a hint turn, clear any previous hint as rules changed.
           setCurrentHint(undefined);
         }
       } else if (checkWinCondition(tempGrid)) {
         setIsGameWon(true);
-        setCurrentHint(undefined); // Clear hint if game won on this move
+        setCurrentHint(undefined);
       }
 
 
@@ -159,15 +158,18 @@ export default function ShiftingMazePage() {
         description: "Could not process game logic. Please try again.",
         variant: "destructive",
       });
-      setCurrentHint(undefined); // Clear hint on general error
+      setCurrentHint(undefined); 
+      setRulesReasoning(undefined); // Clear reasoning on error as well
     } finally {
       setIsLoading(false);
-      if (checkWinCondition(tempGrid) && !isGameWon) { // Ensure isGameWon is not already true
+      if (checkWinCondition(tempGrid) && !isGameWon) { 
         setIsGameWon(true);
       }
     }
   };
 
+  const showRulesUpdateCard = (isLoading && moveCount > 0 && !isHintLoading && !isGameWon) || rulesReasoning;
+  const isRuleMutationLoading = isLoading && moveCount > 0 && !isHintLoading && !rulesReasoning && !isGameWon;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-6 sm:space-y-8 bg-background text-foreground">
@@ -191,11 +193,44 @@ export default function ShiftingMazePage() {
         className="flex flex-col items-center space-y-6 sm:space-y-8 w-full"
       >
         <div className="flex flex-col md:flex-row gap-6 items-start justify-center w-full px-2 sm:px-4">
-          <RulesDisplay 
-            rules={currentRules} 
-            reasoning={rulesReasoning}
-            isLoadingMutation={isLoading && moveCount > 0 && !isHintLoading} 
-          />
+          <RulesDisplay rules={currentRules} />
+          
+          {showRulesUpdateCard && (
+            <Card className="w-full max-w-md shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-center text-primary font-headline">
+                  {isRuleMutationLoading && <Loader2 className="inline mr-2 h-5 w-5 animate-spin" />}
+                  Rules Update
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {rulesReasoning ? (
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Alert className="bg-secondary border-primary/50">
+                        <Lightbulb className="h-5 w-5 text-primary" />
+                        <AlertTitle className="text-primary font-semibold">Rules Mutated!</AlertTitle>
+                        <AlertDescription className="text-secondary-foreground whitespace-pre-line">
+                          {rulesReasoning}
+                        </AlertDescription>
+                      </Alert>
+                    </motion.div>
+                  </AnimatePresence>
+                ) : isRuleMutationLoading ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <p className="ml-2 text-sm text-secondary-foreground">Checking for rule changes...</p>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          )}
+
           <HintDisplay hint={currentHint} isLoading={isHintLoading} />
         </div>
         
@@ -219,11 +254,11 @@ export default function ShiftingMazePage() {
         isOpen={isGameWon} 
         onClose={() => {
           setIsGameWon(false); 
-          setCurrentHint(undefined); // Clear hint when closing win dialog
+          setCurrentHint(undefined); 
         }} 
         onReset={() => {
           setupNextLevel();
-          setCurrentHint(undefined); // Clear hint when starting next level
+          setCurrentHint(undefined); 
         }} />
       
       <footer className="text-center text-xs text-muted-foreground mt-4">
