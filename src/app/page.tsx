@@ -6,10 +6,12 @@ import { GameGrid } from "@/components/shifting-maze/GameGrid";
 import { GameControls } from "@/components/shifting-maze/GameControls";
 import { RulesDisplay } from "@/components/shifting-maze/RulesDisplay";
 import { WinDialog } from "@/components/shifting-maze/WinDialog";
+import { HintDisplay } from "@/components/shifting-maze/HintDisplay";
 import type { GridState } from "@/lib/types";
 import { MIN_GRID_SIZE, MAX_GRID_SIZE, getInitialRules, createGrid } from "@/lib/types";
 import { toggleAdjacentTile } from "@/ai/flows/toggle-adjacent-tile";
 import { mutateRules } from "@/ai/flows/mutate-rules";
+import { generateHint } from "@/ai/flows/generate-hint-flow";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
@@ -24,16 +26,21 @@ export default function ShiftingMazePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGameWon, setIsGameWon] = useState<boolean>(false);
   const [toggledByAi, setToggledByAi] = useState<{row: number, col: number}[]>([]);
+  const [currentHint, setCurrentHint] = useState<string | undefined>(undefined);
+  const [isHintLoading, setIsHintLoading] = useState<boolean>(false);
 
   const { toast } = useToast();
+
+  const convertGridToString = (currentGrid: GridState): string => {
+    return currentGrid.map(row => row.map(tile => (tile ? '1' : '0')).join('')).join('\\n');
+  };
 
   const resetGridAndRules = useCallback((size: number) => {
     let initialGrid = createGrid(size);
     if (size === MIN_GRID_SIZE) {
-      // Make the initial 3x3 grid slightly easier
       if (initialGrid.length === 3 && initialGrid[0].length === 3) {
-        initialGrid[0][0] = true; // Top-left
-        initialGrid[2][2] = true; // Bottom-right
+        initialGrid[0][0] = true; 
+        initialGrid[2][2] = true; 
       }
     }
     setGrid(initialGrid);
@@ -43,10 +50,11 @@ export default function ShiftingMazePage() {
     setIsLoading(false);
     setIsGameWon(false);
     setToggledByAi([]);
+    setCurrentHint(undefined);
+    setIsHintLoading(false);
   }, []);
 
   useEffect(() => {
-    // Initialize or update grid when gridSize changes
     resetGridAndRules(gridSize);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gridSize]);
@@ -59,6 +67,7 @@ export default function ShiftingMazePage() {
   useEffect(() => {
     if (checkWinCondition(grid) && moveCount > 0 && !isLoading) {
       setIsGameWon(true);
+      setCurrentHint(undefined); // Clear hint on win
     }
   }, [grid, checkWinCondition, moveCount, isLoading]);
 
@@ -69,10 +78,9 @@ export default function ShiftingMazePage() {
   const setupNextLevel = useCallback(() => {
     let newSize = gridSize + 1;
     if (newSize > MAX_GRID_SIZE) {
-      newSize = MIN_GRID_SIZE; // Loop back to min size
+      newSize = MIN_GRID_SIZE; 
     }
     setGridSize(newSize); 
-    // useEffect listening to gridSize will call resetGridAndRules
   }, [gridSize]);
 
 
@@ -82,6 +90,7 @@ export default function ShiftingMazePage() {
     setIsLoading(true);
     setRulesReasoning(undefined);
     setToggledByAi([]);
+    // Don't clear hint immediately, only if not a hint turn or on new hint fetch
 
     const newMoveCount = moveCount + 1;
     setMoveCount(newMoveCount);
@@ -89,7 +98,7 @@ export default function ShiftingMazePage() {
     let tempGrid = grid.map((r, rIdx) =>
       r.map((c, cIdx) => (rIdx === row && cIdx === col ? !c : c))
     );
-    setGrid(tempGrid);
+    setGrid(tempGrid); // Optimistic update for clicked tile
     setToggledByAi([{row, col}]);
 
     try {
@@ -99,12 +108,47 @@ export default function ShiftingMazePage() {
       tempGrid = tempGrid.map((r, rIdx) =>
         r.map((c, cIdx) => (rIdx === adjacentRow && cIdx === adjacentCol ? !c : c))
       );
-      setGrid(tempGrid);
+      setGrid(tempGrid); // Update for AI toggled tile
       setToggledByAi(prev => [...prev, {row: adjacentRow, col: adjacentCol}]);
 
       const ruleMutationResult = await mutateRules({ currentRules, moveNumber: newMoveCount, gridSize });
       setCurrentRules(ruleMutationResult.newRules);
       setRulesReasoning(ruleMutationResult.reasoning);
+
+      // Hint generation logic
+      if (newMoveCount > 0 && !checkWinCondition(tempGrid)) {
+        if (newMoveCount % 5 === 0) {
+          setIsHintLoading(true);
+          setCurrentHint(undefined);
+          try {
+            const gridStateString = convertGridToString(tempGrid);
+            const hintResult = await generateHint({
+              gridStateString,
+              currentRules: ruleMutationResult.newRules,
+              moveCount: newMoveCount,
+              gridSize,
+            });
+            setCurrentHint(hintResult.hintText);
+          } catch (hintError) {
+            console.error("Hint Generation Error:", hintError);
+            toast({
+              title: "Hint Error",
+              description: "Could not generate a hint at this time.",
+              variant: "destructive",
+            });
+            setCurrentHint(undefined);
+          } finally {
+            setIsHintLoading(false);
+          }
+        } else {
+          // If it's not a hint turn, clear any previous hint as rules changed.
+          setCurrentHint(undefined);
+        }
+      } else if (checkWinCondition(tempGrid)) {
+        setIsGameWon(true);
+        setCurrentHint(undefined); // Clear hint if game won on this move
+      }
+
 
     } catch (error) {
       console.error("AI Error:", error);
@@ -113,9 +157,10 @@ export default function ShiftingMazePage() {
         description: "Could not process game logic. Please try again.",
         variant: "destructive",
       });
+      setCurrentHint(undefined); // Clear hint on general error
     } finally {
       setIsLoading(false);
-      if (checkWinCondition(tempGrid)) {
+      if (checkWinCondition(tempGrid) && !isGameWon) { // Ensure isGameWon is not already true
         setIsGameWon(true);
       }
     }
@@ -146,8 +191,10 @@ export default function ShiftingMazePage() {
         <RulesDisplay 
           rules={currentRules} 
           reasoning={rulesReasoning}
-          isLoadingMutation={isLoading && moveCount > 0} 
+          isLoadingMutation={isLoading && moveCount > 0 && !isHintLoading} 
         />
+
+        <HintDisplay hint={currentHint} isLoading={isHintLoading} />
         
         <GameGrid 
           grid={grid}
@@ -161,11 +208,20 @@ export default function ShiftingMazePage() {
           moveCount={moveCount} 
           onReset={resetCurrentLevel} 
           isInteractive={!isLoading}
-          isLoading={isLoading && moveCount > 0}
+          isLoading={(isLoading && moveCount > 0) || isHintLoading}
         />
       </motion.main>
 
-      <WinDialog isOpen={isGameWon} onClose={() => setIsGameWon(false)} onReset={setupNextLevel} />
+      <WinDialog 
+        isOpen={isGameWon} 
+        onClose={() => {
+          setIsGameWon(false); 
+          setCurrentHint(undefined); // Clear hint when closing win dialog
+        }} 
+        onReset={() => {
+          setupNextLevel();
+          setCurrentHint(undefined); // Clear hint when starting next level
+        }} />
       
       <footer className="text-center text-xs text-muted-foreground mt-4">
         <p>&copy; {new Date().getFullYear()} Shifting Maze. Designed to be delightfully frustrating.</p>
@@ -173,4 +229,3 @@ export default function ShiftingMazePage() {
     </div>
   );
 }
-
