@@ -36,17 +36,16 @@ export function Tile({ isGreen, onClick, isInteractive, rowIndex, colIndex, grid
       onClick={onClick}
       disabled={!isInteractive}
       className={cn(
-        "rounded-md sm:rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background transition-all duration-300 ease-in-out transform active:scale-95",
+        "rounded-md sm:rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background transform active:scale-95",
         tileSizeClasses,
         tileColor,
         disabledStyles
       )}
       initial={{ scale: isRecentlyToggled ? 0.75 : 1, opacity: isRecentlyToggled ? 0.6 : 1 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
     >
       <span className="sr-only">{isGreen ? "Green" : "Red"}</span>
     </motion.button>
   );
 }
-
