@@ -47,8 +47,20 @@ export default function ShiftingMazePage() {
     try {
       const response = await fetch('/api/leaderboard');
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to fetch leaderboard: ${response.statusText}`);
+        let errorText = `Failed to fetch leaderboard: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || errorData.error || errorText;
+        } catch (e) {
+          // If response is not JSON, try to get text
+           try {
+            const rawText = await response.text();
+            errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+          } catch (textError) {
+            // Ignore if text cannot be read
+          }
+        }
+        throw new Error(errorText);
       }
       const data: LeaderboardEntry[] = await response.json();
       setLeaderboardEntries(data);
