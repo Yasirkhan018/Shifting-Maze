@@ -41,9 +41,9 @@ export function Tile({ isGreen, onClick, isInteractive, rowIndex, colIndex, grid
         tileColor,
         disabledStyles
       )}
-      initial={{ scale: isRecentlyToggled ? 0.8 : 1, opacity: isRecentlyToggled ? 0.5 : 1 }}
+      initial={{ scale: isRecentlyToggled ? 0.75 : 1, opacity: isRecentlyToggled ? 0.6 : 1 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20, duration: 0.3 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
     >
       <span className="sr-only">{isGreen ? "Green" : "Red"}</span>
     </motion.button>
