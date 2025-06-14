@@ -7,6 +7,7 @@ import { GameControls } from "@/components/shifting-maze/GameControls";
 import { RulesDisplay } from "@/components/shifting-maze/RulesDisplay";
 import { WinDialog } from "@/components/shifting-maze/WinDialog";
 import { HintDisplay } from "@/components/shifting-maze/HintDisplay";
+import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-maze/LeaderboardTable";
 import type { GridState } from "@/lib/types";
 import { MIN_GRID_SIZE, MAX_GRID_SIZE, getInitialRules, createGrid } from "@/lib/types";
 import { toggleAdjacentTile } from "@/ai/flows/toggle-adjacent-tile";
@@ -14,9 +15,10 @@ import { mutateRules } from "@/ai/flows/mutate-rules";
 import { generateHint } from "@/ai/flows/generate-hint-flow";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Lightbulb, Loader2 } from "lucide-react";
+import { Zap, Lightbulb, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 
 export default function ShiftingMazePage() {
@@ -30,8 +32,42 @@ export default function ShiftingMazePage() {
   const [toggledByAi, setToggledByAi] = useState<{row: number, col: number}[]>([]);
   const [currentHint, setCurrentHint] = useState<string | undefined>(undefined);
   const [isHintLoading, setIsHintLoading] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
+
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
   const { toast } = useToast();
+
+  const fetchLeaderboard = useCallback(async () => {
+    setIsLeaderboardLoading(true);
+    setLeaderboardError(null);
+    try {
+      const response = await fetch('/api/leaderboard');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to fetch leaderboard: ${response.statusText}`);
+      }
+      const data: LeaderboardEntry[] = await response.json();
+      setLeaderboardEntries(data);
+    } catch (error) {
+      console.error("Leaderboard Fetch Error:", error);
+      setLeaderboardError((error as Error).message || "Could not load leaderboard.");
+      toast({
+        title: "Leaderboard Error",
+        description: (error as Error).message || "Could not load leaderboard.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLeaderboardLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
 
   const convertGridToString = (currentGrid: GridState): string => {
     return currentGrid.map(row => row.map(tile => (tile ? '1' : '0')).join('')).join('\\n');
@@ -40,10 +76,11 @@ export default function ShiftingMazePage() {
   const resetGridAndRules = useCallback((size: number) => {
     let initialGrid = createGrid(size);
     if (size === MIN_GRID_SIZE) {
+      // Make 3x3 easier to start
       if (initialGrid.length === 3 && initialGrid[0].length === 3) {
-        initialGrid[0][0] = true; 
-        initialGrid[1][1] = true; 
-        initialGrid[2][2] = true; 
+        initialGrid[0][0] = true; // top-left
+        initialGrid[1][1] = true; // center
+        initialGrid[2][2] = true; // bottom-right
       }
     }
     setGrid(initialGrid);
@@ -78,13 +115,49 @@ export default function ShiftingMazePage() {
     resetGridAndRules(gridSize);
   }, [gridSize, resetGridAndRules]);
 
+  const submitScore = async (completedGridSize: number, finalMoveCount: number) => {
+    try {
+      const response = await fetch('/api/leaderboard/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gridSize: completedGridSize, moveCount: finalMoveCount }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit score.');
+      }
+      if (data.username) {
+        setCurrentUser(data.username);
+        toast({
+          title: "Score Submitted!",
+          description: `Nice one, ${data.username}! ${data.message}`,
+        });
+      }
+      fetchLeaderboard(); // Refresh leaderboard after submitting score
+    } catch (error) {
+      console.error("Score Submission Error:", error);
+      toast({
+        title: "Score Submission Error",
+        description: (error as Error).message || "Could not submit your score.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const setupNextLevel = useCallback(() => {
+    const completedLevelSize = gridSize; // Capture size of the level just won
+    const finalMoveCount = moveCount;
+
+    // Submit score for the completed level
+    submitScore(completedLevelSize, finalMoveCount);
+    
     let newSize = gridSize + 1;
     if (newSize > MAX_GRID_SIZE) {
       newSize = MIN_GRID_SIZE; 
     }
     setGridSize(newSize); 
-  }, [gridSize]);
+    // resetGridAndRules will be called by useEffect on gridSize change
+  }, [gridSize, moveCount, fetchLeaderboard, toast]);
 
 
   const handleTileClick = async (row: number, col: number) => {
@@ -185,6 +258,7 @@ export default function ShiftingMazePage() {
           Shifting Maze
         </h1>
         <p className="text-sm sm:text-md text-muted-foreground mt-1 sm:mt-2">The unsolvable {gridSize}x{gridSize} puzzle where rules change with every move!</p>
+        {currentUser && <p className="text-xs text-accent mt-1">Playing as: {currentUser}</p>}
       </motion.header>
 
       <motion.main 
@@ -193,7 +267,7 @@ export default function ShiftingMazePage() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="flex flex-col items-center space-y-6 sm:space-y-8 w-full"
       >
-        <div className="flex flex-col md:flex-row gap-6 items-start justify-center w-full px-2 sm:px-4">
+        <div className="flex flex-col md:flex-row gap-6 items-start justify-center w-full px-2 sm:px-4 max-w-5xl">
           <RulesDisplay rules={currentRules} />
           
           {showRulesUpdateCard && (
@@ -249,6 +323,13 @@ export default function ShiftingMazePage() {
           isInteractive={!isLoading}
           isLoading={(isLoading && moveCount > 0) || isHintLoading}
         />
+
+        <LeaderboardTable entries={leaderboardEntries} isLoading={isLeaderboardLoading} error={leaderboardError} />
+         <Button onClick={fetchLeaderboard} variant="outline" disabled={isLeaderboardLoading} className="mt-4">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLeaderboardLoading ? 'animate-spin' : ''}`} />
+            Refresh Leaderboard
+        </Button>
+
       </motion.main>
 
       <WinDialog 
@@ -258,7 +339,7 @@ export default function ShiftingMazePage() {
           setCurrentHint(undefined); 
         }} 
         onReset={() => {
-          setupNextLevel();
+          setupNextLevel(); // This will now also handle score submission
           setCurrentHint(undefined); 
         }} />
       
@@ -268,4 +349,3 @@ export default function ShiftingMazePage() {
     </div>
   );
 }
-
