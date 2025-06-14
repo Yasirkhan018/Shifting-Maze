@@ -51,10 +51,19 @@ Here are the current rules:
 Move Number: {{{moveNumber}}}
 Grid Size: {{{gridSize}}}x{{{gridSize}}}
 
-Consider the move number to make more drastic changes over time. Explain your reasoning for the changes.
-The rules should be suitable for a {{{gridSize}}}x{{{gridSize}}} grid.
+**Difficulty Scaling Guidance:**
+- **Initial Level (Smallest Grid, e.g., 3x3):** If the current \`gridSize\` is small (e.g., 3) AND the \`moveNumber\` is very low (e.g., less than 3), the rule changes should be VERY SUBTLE and straightforward. The goal is to ease the player into the game. Focus on minimal tweaks that don't drastically alter the core "click tile, one adjacent flips" mechanic. For example, a minor change to scoring (if there was any), a slight visual feedback alteration, or a simple condition that's easy to understand.
+- **Progressive Complexity:** As the \`gridSize\` increases (player progresses to higher levels, e.g., 4x4, 5x5), OR as the \`moveNumber\` increases on any given level, the rule mutations should become SIGNIFICANTLY MORE COMPLEX, CHAOTIC, and introduce more UNPREDICTABLE elements.
+- **For larger grids, be creative! Examples of more complex/random mutations:**
+    - Tiles might change color based on a new pattern (e.g., their row/column number, number of green neighbors).
+    - Clicking a tile might affect tiles in a diagonal pattern, or skip a tile, or affect a 2-tile radius.
+    - Introduce a small, clearly stated chance that a *second* random adjacent tile is affected, or even a distant tile under specific conditions.
+    - The win condition itself could be subtly altered (e.g., "all but one corner tile must be green," or "create a specific pattern of green tiles").
+- The rules must always be described in a way that is understandable to the player, even if the effects are wild and hard to predict.
+- Ensure the game remains "unsolvable" in the long run due to these constant, escalating mutations.
+- Always ensure new rules are appropriate for the current {{{gridSize}}}x{{{gridSize}}} grid.
 
-Output the new rules as a string, and your reasoning behind the changes.
+Output the new rules as a string, and your reasoning behind the changes, explicitly considering this difficulty scaling.
 `,
 });
 
@@ -72,3 +81,4 @@ const mutateRulesFlow = ai.defineFlow(
     return output;
   }
 );
+

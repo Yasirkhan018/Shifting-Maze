@@ -28,7 +28,15 @@ export default function ShiftingMazePage() {
   const { toast } = useToast();
 
   const resetGridAndRules = useCallback((size: number) => {
-    setGrid(() => createGrid(size));
+    let initialGrid = createGrid(size);
+    if (size === MIN_GRID_SIZE) {
+      // Make the initial 3x3 grid slightly easier
+      if (initialGrid.length === 3 && initialGrid[0].length === 3) {
+        initialGrid[0][0] = true; // Top-left
+        initialGrid[2][2] = true; // Bottom-right
+      }
+    }
+    setGrid(initialGrid);
     setCurrentRules(getInitialRules(size));
     setRulesReasoning(undefined);
     setMoveCount(0);
@@ -41,7 +49,7 @@ export default function ShiftingMazePage() {
     // Initialize or update grid when gridSize changes
     resetGridAndRules(gridSize);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gridSize]); // Removed resetGridAndRules from deps to avoid loop, only run when gridSize changes.
+  }, [gridSize]);
 
   const checkWinCondition = useCallback((currentGrid: GridState) => {
     if (!currentGrid || currentGrid.length === 0) return false;
@@ -107,9 +115,6 @@ export default function ShiftingMazePage() {
       });
     } finally {
       setIsLoading(false);
-      // Check win condition again after all updates within the same tick if possible
-      // For robust check, useEffect for 'grid' already handles this.
-      // However, to ensure isGameWon is set before next interaction:
       if (checkWinCondition(tempGrid)) {
         setIsGameWon(true);
       }
