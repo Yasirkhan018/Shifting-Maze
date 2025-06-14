@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,99 +9,99 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 87.8%; /* Light Gray #E0E0E0 */
-    --foreground: 222.2 84% 4.9%; /* Dark blue-gray text for contrast */
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 0%; /* Black */
 
-    --card: 0 0% 92%; /* Slightly darker than background for cards */
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 0%; /* Black */
 
-    --popover: 0 0% 92%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 0 0% 0%; /* Black */
 
-    --primary: 300 100% 25.1%; /* Purple #800080 */
-    --primary-foreground: 0 0% 98%; /* White/light text for purple */
+    --primary: 0 0% 0%; /* Black */
+    --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 300 60% 90%; /* Lighter Purple for secondary elements */
-    --secondary-foreground: 300 100% 25.1%; /* Darker purple text on light purple secondary */
+    --secondary: 0 0% 96%; /* Off-White / Very Light Gray */
+    --secondary-foreground: 0 0% 0%; /* Black */
 
-    --muted: 0 0% 94%; /* Slightly darker muted gray */
-    --muted-foreground: 225.2 38.4% 40.2%; /* Muted text */
+    --muted: 0 0% 94%; /* Light Gray */
+    --muted-foreground: 0 0% 25%; /* Dark Gray text on light gray */
 
-    --accent: 180 100% 50%; /* Cyan #00FFFF */
-    --accent-foreground: 222.2 84% 4.9%; /* Dark text on cyan for accessibility */
+    --accent: 0 0% 40%; /* Medium Gray */
+    --accent-foreground: 0 0% 100%; /* White text on medium gray */
 
-    --destructive: 0 72.2% 50.6%; /* A vibrant red */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 0% 0%; /* Black */
+    --destructive-foreground: 0 0% 100%; /* White */
 
-    --border: 0 0% 80%; /* Slightly darker gray for borders */
-    --input: 0 0% 80%;
-    --ring: 180 100% 60%; /* Brighter Cyan for ring, for visibility on purple elements if needed */
+    --border: 0 0% 85%; /* Light Gray border */
+    --input: 0 0% 90%; /* Light Gray input background */
+    --ring: 0 0% 0%; /* Black focus ring */
 
     --radius: 0.5rem;
 
-    /* Chart colors (keeping defaults, adjust if charts are used) */
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* Chart colors */
+    --chart-1: 0 0% 20%; /* Darkest Gray */
+    --chart-2: 0 0% 35%; /* Dark Gray */
+    --chart-3: 0 0% 50%; /* Medium Gray */
+    --chart-4: 0 0% 65%; /* Light Gray */
+    --chart-5: 0 0% 80%; /* Very Light Gray */
 
-    /* Sidebar colors (keeping defaults, adjust if sidebar is heavily themed) */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 98%; /* Very light gray, almost white */
+    --sidebar-foreground: 0 0% 0%; /* Black */
+    --sidebar-primary: 0 0% 0%; /* Black */
+    --sidebar-primary-foreground: 0 0% 100%; /* White */
+    --sidebar-accent: 0 0% 90%; /* Light gray */
+    --sidebar-accent-foreground: 0 0% 0%; /* Black */
+    --sidebar-border: 0 0% 85%; /* Gray border */
+    --sidebar-ring: 0 0% 0%; /* Black */
   }
 
   .dark {
-    --background: 224 71.4% 4.1%; /* Dark Blue-Gray */
-    --foreground: 210 20% 98%;
+    --background: 0 0% 0%; /* Black */
+    --foreground: 0 0% 100%; /* White */
 
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
+    --card: 0 0% 0%; /* Black */
+    --card-foreground: 0 0% 100%; /* White */
 
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 0 0% 0%; /* Black */
+    --popover-foreground: 0 0% 100%; /* White */
 
-    --primary: 300 80% 65%; /* Brighter Purple for dark mode */
-    --primary-foreground: 210 20% 98%;
+    --primary: 0 0% 100%; /* White */
+    --primary-foreground: 0 0% 0%; /* Black */
 
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 0 0% 10%; /* Off-Black / Very Dark Gray */
+    --secondary-foreground: 0 0% 100%; /* White */
 
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
+    --muted: 0 0% 15%; /* Dark Gray */
+    --muted-foreground: 0 0% 75%; /* Light Gray text on dark gray */
 
-    --accent: 180 90% 70%; /* Brighter Cyan for dark mode */
-    --accent-foreground: 224 71.4% 4.1%; /* Dark text on accent */
+    --accent: 0 0% 60%; /* Medium-Light Gray */
+    --accent-foreground: 0 0% 0%; /* Black text on medium-light gray */
 
-    --destructive: 0 62.8% 40.6%; /* Darker, less vibrant red */
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 0 0% 100%; /* White */
+    --destructive-foreground: 0 0% 0%; /* Black */
 
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 180 90% 70%; /* Accent color for ring in dark mode */
+    --border: 0 0% 20%; /* Dark Gray border */
+    --input: 0 0% 15%; /* Dark Gray input background */
+    --ring: 0 0% 100%; /* White focus ring */
     
     /* Chart colors for dark mode */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 0 0% 80%; /* Very Light Gray */
+    --chart-2: 0 0% 65%; /* Light Gray */
+    --chart-3: 0 0% 50%; /* Medium Gray */
+    --chart-4: 0 0% 35%; /* Dark Gray */
+    --chart-5: 0 0% 20%; /* Darkest Gray */
 
     /* Sidebar colors for dark mode */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 5%; /* Very dark gray, almost black */
+    --sidebar-foreground: 0 0% 100%; /* White */
+    --sidebar-primary: 0 0% 100%; /* White */
+    --sidebar-primary-foreground: 0 0% 0%; /* Black */
+    --sidebar-accent: 0 0% 15%; /* Dark gray */
+    --sidebar-accent-foreground: 0 0% 100%; /* White */
+    --sidebar-border: 0 0% 20%; /* Gray border */
+    --sidebar-ring: 0 0% 100%; /* White */
   }
 }
 
