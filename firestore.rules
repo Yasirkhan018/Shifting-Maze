@@ -1,0 +1,29 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to the leaderboard collection
+    match /leaderboard/{entry} {
+      allow read: if true;
+      // Writes to leaderboard are handled by the server using Admin SDK,
+      // which bypasses these rules. Explicitly deny client writes.
+      allow write: if false;
+    }
+
+    // Users collection should only be accessed by the server (Admin SDK)
+    match /users/{userId} {
+      // Deny direct client read/write. Admin SDK bypasses these rules for server operations.
+      allow read, write: if false;
+    }
+
+    // Metadata collection should only be accessed by the server (Admin SDK)
+    match /metadata/{docId} {
+      // Deny direct client read/write. Admin SDK bypasses these rules for server operations.
+      allow read, write: if false;
+    }
+
+    // By default, if no other rule matches a path, access is denied.
+    // This ensures that any other collections are not inadvertently exposed.
+  }
+}
