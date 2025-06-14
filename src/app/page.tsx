@@ -117,7 +117,9 @@ export default function ShiftingMazePage() {
 
       // Hint generation logic
       if (newMoveCount > 0 && !checkWinCondition(tempGrid)) {
-        if (newMoveCount % 5 === 0) {
+        const shouldGenerateHint = (newMoveCount >= 15) || (newMoveCount < 15 && newMoveCount % 5 === 0);
+
+        if (shouldGenerateHint) {
           setIsHintLoading(true);
           setCurrentHint(undefined);
           try {
@@ -141,7 +143,8 @@ export default function ShiftingMazePage() {
             setIsHintLoading(false);
           }
         } else {
-          // If it's not a hint turn, clear any previous hint as rules changed.
+          // If it's not a hint turn (applicable for moves < 15 not divisible by 5),
+          // clear any previous hint as rules changed.
           setCurrentHint(undefined);
         }
       } else if (checkWinCondition(tempGrid)) {
@@ -229,3 +232,4 @@ export default function ShiftingMazePage() {
     </div>
   );
 }
+
