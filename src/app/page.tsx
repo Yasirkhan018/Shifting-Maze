@@ -42,6 +42,7 @@ export default function ShiftingMazePage() {
     if (size === MIN_GRID_SIZE) {
       if (initialGrid.length === 3 && initialGrid[0].length === 3) {
         initialGrid[0][0] = true; 
+        initialGrid[1][1] = true; 
         initialGrid[2][2] = true; 
       }
     }
@@ -69,7 +70,7 @@ export default function ShiftingMazePage() {
   useEffect(() => {
     if (checkWinCondition(grid) && moveCount > 0 && !isLoading) {
       setIsGameWon(true);
-      setCurrentHint(undefined); // Clear hint on win
+      setCurrentHint(undefined); 
     }
   }, [grid, checkWinCondition, moveCount, isLoading]);
 
@@ -90,7 +91,7 @@ export default function ShiftingMazePage() {
     if (isLoading || isGameWon) return;
 
     setIsLoading(true);
-    setRulesReasoning(undefined); // Clear previous reasoning
+    setRulesReasoning(undefined); 
     setToggledByAi([]);
     
     const newMoveCount = moveCount + 1;
@@ -114,7 +115,7 @@ export default function ShiftingMazePage() {
 
       const ruleMutationResult = await mutateRules({ currentRules, moveNumber: newMoveCount, gridSize });
       setCurrentRules(ruleMutationResult.newRules);
-      setRulesReasoning(ruleMutationResult.reasoning); // Set new reasoning
+      setRulesReasoning(ruleMutationResult.reasoning); 
 
       if (newMoveCount > 0 && !checkWinCondition(tempGrid)) {
          const shouldGenerateHint = (newMoveCount >= 15) || (newMoveCount < 15 && newMoveCount % 5 === 0);
@@ -159,7 +160,7 @@ export default function ShiftingMazePage() {
         variant: "destructive",
       });
       setCurrentHint(undefined); 
-      setRulesReasoning(undefined); // Clear reasoning on error as well
+      setRulesReasoning(undefined); 
     } finally {
       setIsLoading(false);
       if (checkWinCondition(tempGrid) && !isGameWon) { 
@@ -267,3 +268,4 @@ export default function ShiftingMazePage() {
     </div>
   );
 }
+
