@@ -41,14 +41,21 @@ export default function WelcomePage() {
         try {
           const errorData = await response.json();
           errorDescription = errorData.message || errorData.error || errorDescription;
-          if (errorData.username) console.warn("Username from error response:", errorData.username);
-          if (errorData.clientId) console.warn("ClientId from error response:", errorData.clientId);
-          errorDetails = ` (Details: ${errorData.errorName || 'N/A'})`;
+          if (errorData.username) console.warn("Welcome Page: Username from error response:", errorData.username);
+          if (errorData.clientId) console.warn("Welcome Page: ClientId from error response:", errorData.clientId);
+          
+          let detailSource = errorData.errorName || 'N/A';
+          if ((detailSource === 'N/A' || detailSource === 'Error') && errorData.error && typeof errorData.error === 'string' && errorData.error !== errorDescription) {
+            // Use the server's error.message if errorName is generic and error.message provides different info
+            detailSource = errorData.error;
+          }
+          errorDetails = ` (Server Details: ${detailSource})`;
+
         } catch (e) {
           // Failed to parse JSON, try to get raw text
           try {
             const rawText = await response.text();
-            errorDescription = `${response.status} ${response.statusText}`;
+            errorDescription = `${response.status} ${response.statusText}`; // Keep this concise
             errorDetails = `\nServer Response (limit 200 chars): ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
           } catch (textError) {
             // Fallback if text also fails
@@ -163,6 +170,25 @@ export default function WelcomePage() {
           </Link>
         </div>
       </motion.div>
+
+      {/* Leaderboard functionality is removed */}
+      {/* 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="w-full max-w-2xl mt-8"
+      >
+        {isLeaderboardLoading && <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+        {leaderboardError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Leaderboard Error</AlertTitle><AlertDescription>{leaderboardError}</AlertDescription></Alert>}
+        {!isLeaderboardLoading && !leaderboardError && leaderboardEntries.length > 0 && (
+          <LeaderboardTable entries={leaderboardEntries} isLoading={isLeaderboardLoading} error={leaderboardError} />
+        )}
+        {!isLeaderboardLoading && !leaderboardError && leaderboardEntries.length === 0 && (
+           <div className="text-center text-muted-foreground">Leaderboard is currently empty or unavailable.</div>
+        )}
+      </motion.div> 
+      */}
 
       <footer className="text-center text-xs sm:text-sm text-muted-foreground mt-10 py-4">
         <p>&copy; {new Date().getFullYear()} Shifting Maze. Embrace the chaos.</p>
