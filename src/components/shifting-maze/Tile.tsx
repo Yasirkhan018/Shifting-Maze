@@ -19,9 +19,15 @@ export function Tile({ isGreen, onClick, isInteractive, rowIndex, colIndex, grid
   const disabledStyles = !isInteractive ? "opacity-50 cursor-not-allowed" : "";
 
   // Adjust tile size based on grid size
-  const tileSizeClasses = gridSize === 4 
-    ? "w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20" // Slightly smaller for 4x4
-    : "w-20 h-20 sm:w-22 sm:h-22 md:w-24 md:h-24"; // Original for 3x3
+  let tileSizeClasses = "w-20 h-20 sm:w-22 sm:h-22 md:w-24 md:h-24"; // Default for 3x3
+  if (gridSize === 4) {
+    tileSizeClasses = "w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20"; // Slightly smaller for 4x4
+  } else if (gridSize === 5) {
+    tileSizeClasses = "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"; // Smaller for 5x5
+  } else if (gridSize > 5) {
+    tileSizeClasses = "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14"; // Even smaller for larger grids
+  }
+
 
   return (
     <motion.button
@@ -43,3 +49,4 @@ export function Tile({ isGreen, onClick, isInteractive, rowIndex, colIndex, grid
     </motion.button>
   );
 }
+

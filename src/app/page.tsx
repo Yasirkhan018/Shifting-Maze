@@ -59,7 +59,10 @@ export default function ShiftingMazePage() {
   }, [gridSize, resetGridAndRules]);
 
   const setupNextLevel = useCallback(() => {
-    const newSize = gridSize === MIN_GRID_SIZE ? MAX_GRID_SIZE : MIN_GRID_SIZE;
+    let newSize = gridSize + 1;
+    if (newSize > MAX_GRID_SIZE) {
+      newSize = MIN_GRID_SIZE; // Loop back to min size
+    }
     setGridSize(newSize); 
     // useEffect listening to gridSize will call resetGridAndRules
   }, [gridSize]);
@@ -165,3 +168,4 @@ export default function ShiftingMazePage() {
     </div>
   );
 }
+

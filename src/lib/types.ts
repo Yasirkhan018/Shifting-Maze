@@ -3,7 +3,7 @@ export type TileState = boolean; // true for green, false for red
 export type GridState = TileState[][];
 
 export const MIN_GRID_SIZE = 3;
-export const MAX_GRID_SIZE = 4;
+export const MAX_GRID_SIZE = 5; // Increased max grid size
 
 export const getInitialRules = (gridSize: number): string => {
   const totalTiles = gridSize * gridSize;
@@ -14,3 +14,4 @@ export const createGrid = (size: number): GridState =>
   Array(size).fill(null).map(() => 
     Array(size).fill(false) // false for red
   );
+
