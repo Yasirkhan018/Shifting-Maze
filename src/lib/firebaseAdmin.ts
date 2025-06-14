@@ -23,8 +23,7 @@ if (!admin.apps.length) {
       dbInstance = admin.firestore(existingApp);
       authInstance = admin.auth(existingApp);
       console.log("[FirebaseAdmin] Successfully got Firestore and Auth instances from existing app.");
-    } catch (error: any) {
-      console.error('[FirebaseAdmin] Error getting Firestore/Auth from existing app:', error.stack);
+    } catch (error: any)      console.error('[FirebaseAdmin] Error getting Firestore/Auth from existing app:', error.stack);
     }
   } else {
       console.error("[FirebaseAdmin] admin.apps array is populated, but no default app (index 0) found. This is unexpected.");
@@ -39,8 +38,7 @@ if (!authInstance) {
     console.warn("Warning [FirebaseAdmin]: Firebase Auth instance (auth) is not available.");
 }
 
-// Export potentially undefined instances. Consumers must handle this.
-// However, for simplicity, we'll use non-null assertion operator,
-// assuming API routes will catch errors if they are indeed null.
-export const db = dbInstance!;
-export const auth = authInstance!;
+// Export potentially undefined instances. API routes must check for their availability.
+export const db = dbInstance;
+export const auth = authInstance;
+
