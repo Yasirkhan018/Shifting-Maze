@@ -32,25 +32,19 @@ export async function toggleAdjacentTile(input: ToggleAdjacentTileInput): Promis
   return toggleAdjacentTileFlow(input);
 }
 
+// This tool contains the direct logic to pick an adjacent tile.
 const pickAdjacentTileTool = ai.defineTool({
   name: 'pickAdjacentTile',
   description: 'Given a tile in a NxN grid and the gridSize N, picks a valid adjacent tile to it at random.',
-  inputSchema: z.object({
-    row: z.number().int().min(0).describe('The row index of the tile (0-indexed).'),
-    col: z.number().int().min(0).describe('The column index of the tile (0-indexed).'),
-    gridSize: z.number().int().min(3).describe('The dimension of the square grid (N).'),
-  }),
-  outputSchema: z.object({
-    adjacentRow: z.number().int().min(0).describe('The row index of the adjacent tile (0-indexed).'),
-    adjacentCol: z.number().int().min(0).describe('The column index of the adjacent tile (0-indexed).'),
-  }),
+  inputSchema: ToggleAdjacentTileInputSchema, // Re-using the flow's input schema
+  outputSchema: ToggleAdjacentTileOutputSchema, // Re-using the flow's output schema
 },
 async (input) => {
   const {row, col, gridSize} = input;
 
+  // Input validation is already done in the exported `toggleAdjacentTile` function
+  // and by the flow's inputSchema, but re-checking here makes the tool robust if used elsewhere.
   if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
-    // This should ideally be caught by the flow's input validation or earlier.
-    // Throwing an error here ensures the tool itself is robust.
     throw new Error(`Tool received invalid row/col for gridSize. Row: ${row}, Col: ${col}, GridSize: ${gridSize}`);
   }
   
@@ -74,9 +68,8 @@ async (input) => {
   }
 
   if (possibleAdjacentTiles.length === 0) {
-    // Should not happen in a grid of size >= 2x2, but good to handle.
-    // For a 1x1 grid (which we don't support based on min(3)), this would be an issue.
-    // For a single cell in a larger grid, this path won't be taken.
+    // This case should not be reachable in a grid of size >= 2x2
+    // For a 1x1 grid (which isn't supported by min(3) gridSize), this would be an issue.
     throw new Error(`No adjacent tiles found for row: ${row}, col: ${col} in a ${gridSize}x${gridSize} grid. This is unexpected.`);
   }
 
@@ -84,13 +77,8 @@ async (input) => {
   return possibleAdjacentTiles[randomIndex];
 });
 
-const toggleAdjacentTilePrompt = ai.definePrompt({
-  name: 'toggleAdjacentTilePrompt',
-  tools: [pickAdjacentTileTool],
-  input: {schema: ToggleAdjacentTileInputSchema},
-  output: {schema: ToggleAdjacentTileOutputSchema},
-  prompt: `You are part of a puzzle game called Shifting Maze. The game grid is {{{gridSize}}}x{{{gridSize}}}. The user has clicked on tile ({{{row}}}, {{{col}}}). Randomly pick one adjacent tile to toggle using the pickAdjacentTile tool. Return the row and column of the toggled tile. Focus on picking a valid adjacent tile and returning its coordinates. Return ONLY the coordinates of the adjacent tile that was picked and toggled. Do not return any other information.`,
-});
+// The AI prompt is no longer needed for this flow.
+// const toggleAdjacentTilePrompt = ai.definePrompt({ ... });
 
 const toggleAdjacentTileFlow = ai.defineFlow(
   {
@@ -98,19 +86,27 @@ const toggleAdjacentTileFlow = ai.defineFlow(
     inputSchema: ToggleAdjacentTileInputSchema,
     outputSchema: ToggleAdjacentTileOutputSchema,
   },
-  async input => {
-    const {output} = await toggleAdjacentTilePrompt(input);
+  async (input: ToggleAdjacentTileInput): Promise<ToggleAdjacentTileOutput> => {
+    // Directly use the logic from pickAdjacentTileTool by invoking the tool.
+    // The 'pickAdjacentTileTool' is a callable Genkit tool.
+    const output = await pickAdjacentTileTool(input);
+
     if (!output) {
-      throw new Error('AI failed to return an output for toggling adjacent tile.');
+      // This should ideally not happen if the tool logic is sound and always returns a value.
+      throw new Error('pickAdjacentTileTool failed to return an output.');
     }
+    
+    // Validate output structure (though Zod schema validation within the tool should cover this)
     if (output.adjacentRow === undefined || output.adjacentCol === undefined) {
-      throw new Error('AI output is missing adjacentRow or adjacentCol.');
+      throw new Error('Tool output is missing adjacentRow or adjacentCol.');
     }
-     if (output.adjacentRow < 0 || output.adjacentRow >= input.gridSize || output.adjacentCol < 0 || output.adjacentCol >= input.gridSize) {
-      console.error("AI returned out-of-bounds tile, attempting fallback (though ideally tool prevents this):", output);
-      // Fallback or error. For now, let's throw. Tool should prevent this.
-      throw new Error(`AI returned out-of-bounds adjacent tile: (${output.adjacentRow}, ${output.adjacentCol}) for gridSize ${input.gridSize}`);
+
+    // Validate output bounds (also should be covered by tool logic but good for safety)
+    if (output.adjacentRow < 0 || output.adjacentRow >= input.gridSize || output.adjacentCol < 0 || output.adjacentCol >= input.gridSize) {
+      console.error("Tool returned out-of-bounds tile:", output);
+      throw new Error(`Tool returned out-of-bounds adjacent tile: (${output.adjacentRow}, ${output.adjacentCol}) for gridSize ${input.gridSize}`);
     }
+    
     return output;
   }
 );
