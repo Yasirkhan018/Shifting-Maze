@@ -1,19 +1,24 @@
+
 "use client";
 
 import type { GridState } from "@/lib/types";
 import { Tile } from "./Tile";
+import { MIN_GRID_SIZE } from "@/lib/types"; // Import for default column count
 
 interface GameGridProps {
   grid: GridState;
+  gridSize: number;
   onTileClick: (row: number, col: number) => void;
   isInteractive: boolean;
   toggledTiles?: { row: number; col: number }[];
 }
 
-export function GameGrid({ grid, onTileClick, isInteractive, toggledTiles }: GameGridProps) {
+export function GameGrid({ grid, gridSize, onTileClick, isInteractive, toggledTiles }: GameGridProps) {
+  const cols = grid && grid.length > 0 ? grid[0].length : gridSize || MIN_GRID_SIZE;
+  
   return (
     <div
-      className="grid grid-cols-3 gap-2 p-2 bg-card rounded-lg shadow-lg"
+      className={`grid grid-cols-${cols} gap-1 sm:gap-2 p-1 sm:p-2 bg-card rounded-lg shadow-lg`}
       role="grid"
       aria-label="Game Grid"
     >
@@ -28,6 +33,7 @@ export function GameGrid({ grid, onTileClick, isInteractive, toggledTiles }: Gam
               isInteractive={isInteractive}
               rowIndex={rowIndex}
               colIndex={colIndex}
+              gridSize={gridSize}
               isRecentlyToggled={isRecentlyToggled}
             />
           );

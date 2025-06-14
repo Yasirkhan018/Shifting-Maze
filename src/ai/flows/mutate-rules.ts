@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -16,6 +17,7 @@ const MutateRulesInputSchema = z.object({
     .string()
     .describe('The current rules of the game as a string.'),
   moveNumber: z.number().describe('The current move number.'),
+  gridSize: z.number().int().min(3).describe('The dimension of the square grid (e.g., 3 for 3x3, 4 for 4x4).'),
 });
 export type MutateRulesInput = z.infer<typeof MutateRulesInputSchema>;
 
@@ -39,16 +41,18 @@ const prompt = ai.definePrompt({
   output: {schema: MutateRulesOutputSchema},
   prompt: `You are an AI game designer responsible for creating engaging and evolving game rules for a puzzle game called Shifting Maze.
 
-The game involves a 3x3 grid of tiles. Clicking a tile toggles its state (green <-> red) and randomly toggles one adjacent tile. The game is designed to be unsolvable by mutating the rules after every move.
+The game involves a {{{gridSize}}}x{{{gridSize}}} grid of tiles. Clicking a tile toggles its state (green <-> red) and randomly toggles one adjacent tile. The game is designed to be unsolvable by mutating the rules after every move.
 
-You are given the current game rules and the current move number. Your task is to generate new, mutated rules for the game.
+You are given the current game rules, the current move number, and the grid size. Your task is to generate new, mutated rules for the game.
 
 Here are the current rules:
 {{{currentRules}}}
 
 Move Number: {{{moveNumber}}}
+Grid Size: {{{gridSize}}}x{{{gridSize}}}
 
 Consider the move number to make more drastic changes over time. Explain your reasoning for the changes.
+The rules should be suitable for a {{{gridSize}}}x{{{gridSize}}} grid.
 
 Output the new rules as a string, and your reasoning behind the changes.
 `,
@@ -62,6 +66,9 @@ const mutateRulesFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI failed to return an output for mutating rules.');
+    }
+    return output;
   }
 );

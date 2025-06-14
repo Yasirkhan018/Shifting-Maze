@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -6,7 +7,7 @@ import { GameControls } from "@/components/shifting-maze/GameControls";
 import { RulesDisplay } from "@/components/shifting-maze/RulesDisplay";
 import { WinDialog } from "@/components/shifting-maze/WinDialog";
 import type { GridState } from "@/lib/types";
-import { INITIAL_RULES, createInitialGrid } from "@/lib/types";
+import { MIN_GRID_SIZE, MAX_GRID_SIZE, getInitialRules, createGrid } from "@/lib/types";
 import { toggleAdjacentTile } from "@/ai/flows/toggle-adjacent-tile";
 import { mutateRules } from "@/ai/flows/mutate-rules";
 import { useToast } from "@/hooks/use-toast";
@@ -15,8 +16,9 @@ import { Zap } from "lucide-react";
 
 
 export default function ShiftingMazePage() {
-  const [grid, setGrid] = useState<GridState>(createInitialGrid());
-  const [currentRules, setCurrentRules] = useState<string>(INITIAL_RULES);
+  const [gridSize, setGridSize] = useState<number>(MIN_GRID_SIZE);
+  const [grid, setGrid] = useState<GridState>(() => createGrid(gridSize));
+  const [currentRules, setCurrentRules] = useState<string>(() => getInitialRules(gridSize));
   const [rulesReasoning, setRulesReasoning] = useState<string | undefined>(undefined);
   const [moveCount, setMoveCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -25,13 +27,9 @@ export default function ShiftingMazePage() {
 
   const { toast } = useToast();
 
-  const checkWinCondition = useCallback((currentGrid: GridState) => {
-    return currentGrid.every(row => row.every(tile => tile === true));
-  }, []);
-
-  const resetGame = useCallback(() => {
-    setGrid(createInitialGrid());
-    setCurrentRules(INITIAL_RULES);
+  const resetGridAndRules = useCallback((size: number) => {
+    setGrid(() => createGrid(size));
+    setCurrentRules(getInitialRules(size));
     setRulesReasoning(undefined);
     setMoveCount(0);
     setIsLoading(false);
@@ -40,43 +38,60 @@ export default function ShiftingMazePage() {
   }, []);
 
   useEffect(() => {
-    if (checkWinCondition(grid) && moveCount > 0) {
+    // Initialize or update grid when gridSize changes
+    resetGridAndRules(gridSize);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gridSize]); // Removed resetGridAndRules from deps to avoid loop, only run when gridSize changes.
+
+  const checkWinCondition = useCallback((currentGrid: GridState) => {
+    if (!currentGrid || currentGrid.length === 0) return false;
+    return currentGrid.every(row => row.every(tile => tile === true));
+  }, []);
+
+  useEffect(() => {
+    if (checkWinCondition(grid) && moveCount > 0 && !isLoading) {
       setIsGameWon(true);
     }
-  }, [grid, checkWinCondition, moveCount]);
+  }, [grid, checkWinCondition, moveCount, isLoading]);
+
+  const resetCurrentLevel = useCallback(() => {
+    resetGridAndRules(gridSize);
+  }, [gridSize, resetGridAndRules]);
+
+  const setupNextLevel = useCallback(() => {
+    const newSize = gridSize === MIN_GRID_SIZE ? MAX_GRID_SIZE : MIN_GRID_SIZE;
+    setGridSize(newSize); 
+    // useEffect listening to gridSize will call resetGridAndRules
+  }, [gridSize]);
+
 
   const handleTileClick = async (row: number, col: number) => {
     if (isLoading || isGameWon) return;
 
     setIsLoading(true);
-    setRulesReasoning(undefined); // Clear previous reasoning
-    setToggledByAi([]); // Clear previous AI toggles
+    setRulesReasoning(undefined);
+    setToggledByAi([]);
 
     const newMoveCount = moveCount + 1;
     setMoveCount(newMoveCount);
 
-    // 1. Toggle clicked tile
-    let newGrid = grid.map((r, rIdx) =>
+    let tempGrid = grid.map((r, rIdx) =>
       r.map((c, cIdx) => (rIdx === row && cIdx === col ? !c : c))
     );
-    setGrid(newGrid);
+    setGrid(tempGrid);
     setToggledByAi([{row, col}]);
 
-
     try {
-      // 2. Toggle adjacent tile using AI
-      const adjacentToggleResult = await toggleAdjacentTile({ row, col });
+      const adjacentToggleResult = await toggleAdjacentTile({ row, col, gridSize });
       const { adjacentRow, adjacentCol } = adjacentToggleResult;
       
-      newGrid = newGrid.map((r, rIdx) =>
+      tempGrid = tempGrid.map((r, rIdx) =>
         r.map((c, cIdx) => (rIdx === adjacentRow && cIdx === adjacentCol ? !c : c))
       );
-      setGrid(newGrid); // Update grid with AI toggle
+      setGrid(tempGrid);
       setToggledByAi(prev => [...prev, {row: adjacentRow, col: adjacentCol}]);
 
-
-      // 3. Mutate rules using AI
-      const ruleMutationResult = await mutateRules({ currentRules, moveNumber: newMoveCount });
+      const ruleMutationResult = await mutateRules({ currentRules, moveNumber: newMoveCount, gridSize });
       setCurrentRules(ruleMutationResult.newRules);
       setRulesReasoning(ruleMutationResult.reasoning);
 
@@ -87,14 +102,12 @@ export default function ShiftingMazePage() {
         description: "Could not process game logic. Please try again.",
         variant: "destructive",
       });
-      // Potentially revert move or reset part of the state if AI fails critically
-      // For this game, we might let it continue with potentially inconsistent state
-      // or revert the move count.
-      // setMoveCount(moveCount); // Revert move count if AI fails
     } finally {
       setIsLoading(false);
-      // Re-check win condition after all updates
-       if (checkWinCondition(newGrid)) {
+      // Check win condition again after all updates within the same tick if possible
+      // For robust check, useEffect for 'grid' already handles this.
+      // However, to ensure isGameWon is set before next interaction:
+      if (checkWinCondition(tempGrid)) {
         setIsGameWon(true);
       }
     }
@@ -113,7 +126,7 @@ export default function ShiftingMazePage() {
           <Zap className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 mr-2 sm:mr-3 text-accent" />
           Shifting Maze
         </h1>
-        <p className="text-sm sm:text-md text-muted-foreground mt-1 sm:mt-2">The unsolvable puzzle where rules change with every move!</p>
+        <p className="text-sm sm:text-md text-muted-foreground mt-1 sm:mt-2">The unsolvable {gridSize}x{gridSize} puzzle where rules change with every move!</p>
       </motion.header>
 
       <motion.main 
@@ -125,11 +138,12 @@ export default function ShiftingMazePage() {
         <RulesDisplay 
           rules={currentRules} 
           reasoning={rulesReasoning}
-          isLoadingMutation={isLoading} 
+          isLoadingMutation={isLoading && moveCount > 0} 
         />
         
         <GameGrid 
-          grid={grid} 
+          grid={grid}
+          gridSize={gridSize}
           onTileClick={handleTileClick} 
           isInteractive={!isLoading && !isGameWon}
           toggledTiles={toggledByAi}
@@ -137,13 +151,13 @@ export default function ShiftingMazePage() {
         
         <GameControls 
           moveCount={moveCount} 
-          onReset={resetGame} 
+          onReset={resetCurrentLevel} 
           isInteractive={!isLoading}
-          isLoading={isLoading && moveCount > 0} // Show loader on reset if mid-AI-turn (though usually reset is separate)
+          isLoading={isLoading && moveCount > 0}
         />
       </motion.main>
 
-      <WinDialog isOpen={isGameWon} onClose={() => setIsGameWon(false)} onReset={resetGame} />
+      <WinDialog isOpen={isGameWon} onClose={() => setIsGameWon(false)} onReset={setupNextLevel} />
       
       <footer className="text-center text-xs text-muted-foreground mt-4">
         <p>&copy; {new Date().getFullYear()} Shifting Maze. Designed to be delightfully frustrating.</p>
