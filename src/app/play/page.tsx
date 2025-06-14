@@ -7,7 +7,7 @@ import { GameControls } from "@/components/shifting-maze/GameControls";
 import { RulesDisplay } from "@/components/shifting-maze/RulesDisplay";
 import { WinDialog } from "@/components/shifting-maze/WinDialog";
 import { HintDisplay } from "@/components/shifting-maze/HintDisplay";
-import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-maze/LeaderboardTable";
+// import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-maze/LeaderboardTable";
 import type { GridState } from "@/lib/types";
 import { MIN_GRID_SIZE, MAX_GRID_SIZE, getInitialRules, createGrid } from "@/lib/types";
 import { toggleAdjacentTile } from "@/ai/flows/toggle-adjacent-tile";
@@ -41,60 +41,60 @@ export default function ShiftingMazePage() {
   const [toggledByAi, setToggledByAi] = useState<{row: number, col: number}[]>([]);
   const [currentHint, setCurrentHint] = useState<string | undefined>(undefined);
   const [isHintLoading, setIsHintLoading] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
+  // const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
 
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false);
-  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  // const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  // const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false);
+  // const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
   const { toast } = useToast();
 
-  const fetchLeaderboard = useCallback(async () => {
-    setIsLeaderboardLoading(true);
-    setLeaderboardError(null);
-    try {
-      const response = await fetch('/api/leaderboard');
-      if (!response.ok) {
-        let errorText = `Failed to fetch leaderboard: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorText = errorData.message || errorData.error || errorText;
-        } catch (e) {
-           try {
-            const rawText = await response.text();
-            errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
-          } catch (textError) {
-            // Ignore if text cannot be read
-          }
-        }
-        console.warn(`Game Page: Leaderboard API Error - ${errorText}`);
-        setLeaderboardError(errorText);
-        toast({
-          title: "Leaderboard Error",
-          description: errorText.split('\n')[0], // Show only primary error message
-          variant: "destructive",
-        });
-      } else {
-        const data: LeaderboardEntry[] = await response.json();
-        setLeaderboardEntries(data);
-      }
-    } catch (networkOrOtherError) {
-      console.error("Game Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
-      const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
-      setLeaderboardError(errorMessage);
-      toast({
-        title: "Leaderboard Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLeaderboardLoading(false);
-    }
-  }, [toast]);
+  // const fetchLeaderboard = useCallback(async () => {
+  //   setIsLeaderboardLoading(true);
+  //   setLeaderboardError(null);
+  //   try {
+  //     const response = await fetch('/api/leaderboard');
+  //     if (!response.ok) {
+  //       let errorText = `Failed to fetch leaderboard: ${response.status} ${response.statusText}`;
+  //       try {
+  //         const errorData = await response.json();
+  //         errorText = errorData.message || errorData.error || errorText;
+  //       } catch (e) {
+  //          try {
+  //           const rawText = await response.text();
+  //           errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+  //         } catch (textError) {
+  //           // Ignore if text cannot be read
+  //         }
+  //       }
+  //       console.warn(`Game Page: Leaderboard API Error - ${errorText}`);
+  //       setLeaderboardError(errorText);
+  //       toast({
+  //         title: "Leaderboard Error",
+  //         description: errorText.split('\n')[0], // Show only primary error message
+  //         variant: "destructive",
+  //       });
+  //     } else {
+  //       const data: LeaderboardEntry[] = await response.json();
+  //       setLeaderboardEntries(data);
+  //     }
+  //   } catch (networkOrOtherError) {
+  //     console.error("Game Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
+  //     const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
+  //     setLeaderboardError(errorMessage);
+  //     toast({
+  //       title: "Leaderboard Error",
+  //       description: errorMessage,
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setIsLeaderboardLoading(false);
+  //   }
+  // }, [toast]);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+  // useEffect(() => {
+  //   fetchLeaderboard();
+  // }, [fetchLeaderboard]);
 
 
   const convertGridToString = (currentGrid: GridState): string => {
@@ -142,47 +142,48 @@ export default function ShiftingMazePage() {
     resetGridAndRules(gridSize);
   }, [gridSize, resetGridAndRules]);
 
-  const submitScore = async (completedGridSize: number, finalMoveCount: number) => {
-    try {
-      const response = await fetch('/api/leaderboard/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gridSize: completedGridSize, moveCount: finalMoveCount }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit score.');
-      }
-      if (data.username) {
-        setCurrentUser(data.username);
-        toast({
-          title: "Score Submitted!",
-          description: `Nice one, ${data.username}! ${data.message}`,
-        });
-      }
-      fetchLeaderboard(); 
-    } catch (error) {
-      console.error("Score Submission Error:", error);
-      toast({
-        title: "Score Submission Error",
-        description: (error as Error).message || "Could not submit your score.",
-        variant: "destructive",
-      });
-    }
-  };
+  // const submitScore = async (completedGridSize: number, finalMoveCount: number) => {
+  //   try {
+  //     const response = await fetch('/api/leaderboard/score', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ gridSize: completedGridSize, moveCount: finalMoveCount }),
+  //     });
+  //     const data = await response.json();
+  //     if (!response.ok) {
+  //       throw new Error(data.message || 'Failed to submit score.');
+  //     }
+  //     if (data.username) {
+  //       setCurrentUser(data.username);
+  //       toast({
+  //         title: "Score Submitted!",
+  //         description: `Nice one, ${data.username}! ${data.message}`,
+  //       });
+  //     }
+  //     // fetchLeaderboard(); 
+  //   } catch (error) {
+  //     console.error("Score Submission Error:", error);
+  //     toast({
+  //       title: "Score Submission Error",
+  //       description: (error as Error).message || "Could not submit your score.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
   const setupNextLevel = useCallback(() => {
-    const completedLevelSize = gridSize; 
-    const finalMoveCount = moveCount;
+    // const completedLevelSize = gridSize; 
+    // const finalMoveCount = moveCount;
 
-    submitScore(completedLevelSize, finalMoveCount);
+    // submitScore(completedLevelSize, finalMoveCount);
     
     let newSize = gridSize + 1;
     if (newSize > MAX_GRID_SIZE) {
       newSize = MIN_GRID_SIZE; 
     }
     setGridSize(newSize); 
-  }, [gridSize, moveCount, fetchLeaderboard, toast]);
+  // }, [gridSize, moveCount, fetchLeaderboard, toast]);
+  }, [gridSize, moveCount, toast]);
 
 
   const handleTileClick = async (row: number, col: number) => {
@@ -283,7 +284,7 @@ export default function ShiftingMazePage() {
           Shifting Maze
         </h1>
         <p className="text-sm sm:text-md text-muted-foreground mt-1 sm:mt-2">The unsolvable {gridSize}x{gridSize} puzzle where rules change with every move!</p>
-        {currentUser && <p className="text-xs text-accent mt-1">Playing as: {currentUser}</p>}
+        {/* {currentUser && <p className="text-xs text-accent mt-1">Playing as: {currentUser}</p>} */}
          <Link href="/" passHref>
             <Button variant="link" className="text-xs text-accent mt-1 p-0 h-auto">
               &larr; Back to Welcome
@@ -354,11 +355,11 @@ export default function ShiftingMazePage() {
           isLoading={(isLoading && moveCount > 0) || isHintLoading}
         />
 
-        <LeaderboardTable entries={leaderboardEntries} isLoading={isLeaderboardLoading} error={leaderboardError} />
-         <Button onClick={fetchLeaderboard} variant="outline" disabled={isLeaderboardLoading} className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+        {/* <LeaderboardTable entries={leaderboardEntries} isLoading={isLeaderboardLoading} error={leaderboardError} /> */}
+         {/* <Button onClick={fetchLeaderboard} variant="outline" disabled={isLeaderboardLoading} className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
             <RefreshCw className={`mr-2 h-4 w-4 ${isLeaderboardLoading ? 'animate-spin' : ''}`} />
             Refresh Leaderboard
-        </Button>
+        </Button> */}
 
       </motion.main>
 

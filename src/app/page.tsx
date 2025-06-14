@@ -5,67 +5,67 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-maze/LeaderboardTable";
+// import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-maze/LeaderboardTable";
 import { Zap, Gamepad2, Users, AlertTriangle, RefreshCw } from "lucide-react";
 import { getInitialRules, MIN_GRID_SIZE } from "@/lib/types";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WelcomePage() {
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false);
-  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
-  const { toast } = useToast();
+  // const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  // const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false);
+  // const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  // const { toast } = useToast();
 
   const commonRules = getInitialRules(MIN_GRID_SIZE) + 
     "\n\nThe rules can mutate after every move, making the game unpredictably challenging. The goal is to turn all tiles green.";
 
-  const fetchLeaderboard = useCallback(async () => {
-    setIsLeaderboardLoading(true);
-    setLeaderboardError(null);
-    try {
-      const response = await fetch('/api/leaderboard');
-      if (!response.ok) {
-        let errorText = `Failed to fetch leaderboard: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorText = errorData.message || errorData.error || errorText;
-        } catch (e) {
-          try {
-            const rawText = await response.text();
-            errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
-          } catch (textError) {
-            // Ignore if text cannot be read
-          }
-        }
-        console.warn(`Welcome Page: Leaderboard API Error - ${errorText}`);
-        setLeaderboardError(errorText);
-        toast({
-          title: "Leaderboard Error",
-          description: errorText.split('\n')[0], // Show only primary error message
-          variant: "destructive",
-        });
-      } else {
-        const data: LeaderboardEntry[] = await response.json();
-        setLeaderboardEntries(data);
-      }
-    } catch (networkOrOtherError) {
-      console.error("Welcome Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
-      const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
-      setLeaderboardError(errorMessage);
-      toast({
-        title: "Leaderboard Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLeaderboardLoading(false);
-    }
-  }, [toast]);
+  // const fetchLeaderboard = useCallback(async () => {
+  //   setIsLeaderboardLoading(true);
+  //   setLeaderboardError(null);
+  //   try {
+  //     const response = await fetch('/api/leaderboard');
+  //     if (!response.ok) {
+  //       let errorText = `Failed to fetch leaderboard: ${response.status} ${response.statusText}`;
+  //       try {
+  //         const errorData = await response.json();
+  //         errorText = errorData.message || errorData.error || errorText;
+  //       } catch (e) {
+  //         try {
+  //           const rawText = await response.text();
+  //           errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+  //         } catch (textError) {
+  //           // Ignore if text cannot be read
+  //         }
+  //       }
+  //       console.warn(`Welcome Page: Leaderboard API Error - ${errorText}`);
+  //       setLeaderboardError(errorText);
+  //       toast({
+  //         title: "Leaderboard Error",
+  //         description: errorText.split('\n')[0], // Show only primary error message
+  //         variant: "destructive",
+  //       });
+  //     } else {
+  //       const data: LeaderboardEntry[] = await response.json();
+  //       setLeaderboardEntries(data);
+  //     }
+  //   } catch (networkOrOtherError) {
+  //     console.error("Welcome Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
+  //     const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
+  //     setLeaderboardError(errorMessage);
+  //     toast({
+  //       title: "Leaderboard Error",
+  //       description: errorMessage,
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setIsLeaderboardLoading(false);
+  //   }
+  // }, [toast]);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+  // useEffect(() => {
+  //   fetchLeaderboard();
+  // }, [fetchLeaderboard]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 space-y-8">
@@ -119,7 +119,7 @@ export default function WelcomePage() {
           </Link>
         </div>
         
-        <Card className="shadow-xl border-primary/30 bg-card">
+        {/* <Card className="shadow-xl border-primary/30 bg-card">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-2xl sm:text-3xl text-primary font-headline flex items-center">
                     <Users className="mr-3 h-7 w-7 text-accent" />
@@ -133,7 +133,7 @@ export default function WelcomePage() {
             <CardContent>
                  <LeaderboardTable entries={leaderboardEntries} isLoading={isLeaderboardLoading} error={leaderboardError} />
             </CardContent>
-        </Card>
+        </Card> */}
 
       </motion.div>
 
