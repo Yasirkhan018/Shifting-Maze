@@ -117,7 +117,7 @@ export default function ShiftingMazePage() {
 
       // Hint generation logic
       if (newMoveCount > 0 && !checkWinCondition(tempGrid)) {
-        const shouldGenerateHint = (newMoveCount >= 15) || (newMoveCount < 15 && newMoveCount % 5 === 0);
+         const shouldGenerateHint = (newMoveCount >= 15) || (newMoveCount < 15 && newMoveCount % 5 === 0);
 
         if (shouldGenerateHint) {
           setIsHintLoading(true);
@@ -143,8 +143,7 @@ export default function ShiftingMazePage() {
             setIsHintLoading(false);
           }
         } else {
-          // If it's not a hint turn (applicable for moves < 15 not divisible by 5),
-          // clear any previous hint as rules changed.
+          // If it's not a hint turn, clear any previous hint as rules changed.
           setCurrentHint(undefined);
         }
       } else if (checkWinCondition(tempGrid)) {
@@ -191,13 +190,14 @@ export default function ShiftingMazePage() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="flex flex-col items-center space-y-6 sm:space-y-8 w-full"
       >
-        <RulesDisplay 
-          rules={currentRules} 
-          reasoning={rulesReasoning}
-          isLoadingMutation={isLoading && moveCount > 0 && !isHintLoading} 
-        />
-
-        <HintDisplay hint={currentHint} isLoading={isHintLoading} />
+        <div className="flex flex-col md:flex-row gap-6 items-start justify-center w-full px-2 sm:px-4">
+          <RulesDisplay 
+            rules={currentRules} 
+            reasoning={rulesReasoning}
+            isLoadingMutation={isLoading && moveCount > 0 && !isHintLoading} 
+          />
+          <HintDisplay hint={currentHint} isLoading={isHintLoading} />
+        </div>
         
         <GameGrid 
           grid={grid}
@@ -232,4 +232,3 @@ export default function ShiftingMazePage() {
     </div>
   );
 }
-
