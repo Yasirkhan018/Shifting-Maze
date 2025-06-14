@@ -21,27 +21,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!auth) {
+      console.error("AuthContext: Firebase Auth instance is not available. Cannot set up onAuthStateChanged listener.");
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+      if (currentUser) {
+        console.log("AuthContext: User state changed, user:", currentUser.uid);
+      } else {
+        console.log("AuthContext: User state changed, no user.");
+      }
     });
     return () => unsubscribe();
   }, []);
 
   const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      console.error("AuthContext: Firebase Auth or Google Provider is not available. Cannot sign in.");
+      toast({
+        title: "Configuration Error",
+        description: "Firebase authentication is not properly configured. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged will handle setting the user
+      // onAuthStateChanged will handle setting the user and setLoading(false)
       toast({
         title: "Signed In",
         description: "Successfully signed in with Google.",
       });
     } catch (error) {
-      console.error("Error signing in with Google:", error);
+      console.error("AuthContext: Error signing in with Google:", error); // Log the full error object
+      const firebaseError = error as { code?: string; message?: string };
       toast({
         title: "Sign-in Error",
-        description: (error as Error).message || "Failed to sign in with Google.",
+        description: firebaseError.message || "Failed to sign in with Google. Check console for details.",
         variant: "destructive",
       });
       setLoading(false); // Ensure loading is false on error
@@ -49,19 +69,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    if (!auth) {
+      console.error("AuthContext: Firebase Auth is not available. Cannot sign out.");
+      toast({
+        title: "Configuration Error",
+        description: "Firebase authentication is not properly configured.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will handle setting the user to null
+      // onAuthStateChanged will handle setting the user to null and setLoading(false)
       toast({
         title: "Signed Out",
         description: "Successfully signed out.",
       });
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("AuthContext: Error signing out:", error); // Log the full error object
+      const firebaseError = error as { code?: string; message?: string };
       toast({
         title: "Sign-out Error",
-        description: (error as Error).message || "Failed to sign out.",
+        description: firebaseError.message || "Failed to sign out. Check console for details.",
         variant: "destructive",
       });
       setLoading(false); // Ensure loading is false on error
