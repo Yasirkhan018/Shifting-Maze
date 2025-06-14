@@ -24,6 +24,7 @@ export type MutateRulesInput = z.infer<typeof MutateRulesInputSchema>;
 const MutateRulesOutputSchema = z.object({
   newRules: z
     .string()
+    .min(1, { message: "New rules cannot be empty." })
     .describe('The new, mutated rules of the game as a string.'),
   reasoning: z
     .string()
@@ -59,7 +60,7 @@ Grid Size: {{{gridSize}}}x{{{gridSize}}}
     - Clicking a tile might affect tiles in a diagonal pattern, or skip a tile, or affect a 2-tile radius.
     - Introduce a small, clearly stated chance that a *second* random adjacent tile is affected, or even a distant tile under specific conditions.
     - The win condition itself could be subtly altered (e.g., "all but one corner tile must be green," or "create a specific pattern of green tiles").
-- The rules must always be described in a way that is understandable to the player, even if the effects are wild and hard to predict.
+- The rules must always be described in a way that is understandable to the player, even if the effects are wild and hard to predict. Ensure the new rules are a non-empty string.
 - Ensure the game remains "unsolvable" in the long run due to these constant, escalating mutations.
 - Always ensure new rules are appropriate for the current {{{gridSize}}}x{{{gridSize}}} grid.
 
