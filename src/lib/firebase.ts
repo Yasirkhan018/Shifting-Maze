@@ -11,7 +11,8 @@ const firebaseConfig = {
   projectId: "shifting-maze",
   storageBucket: "shifting-maze.firebasestorage.app",
   messagingSenderId: "485365483029",
-  appId: "1:485365483029:web:7c48d8722d896f5da8301c"
+  appId: "1:485365483029:web:7c48d8722d896f5da8301c",
+  measurementId: "G-2XPZ34MQ04"
 };
 
 // Initialize Firebase
@@ -19,7 +20,7 @@ let app: FirebaseApp | undefined; // Allow app to be undefined initially
 if (!getApps().length) {
   try {
     app = initializeApp(firebaseConfig);
-    console.log("[FirebaseClient] Firebase app initialized successfully.");
+    console.log("[FirebaseClient] Firebase app initialized successfully with provided config.");
   } catch (e) {
     console.error("[FirebaseClient] Firebase client initialization error:", e);
     // app will remain undefined if init fails
@@ -47,3 +48,4 @@ if (app) {
 // Export potentially undefined instances; consuming code should handle this.
 export { app, authInstance as auth, googleProviderInstance as googleProvider, signInWithPopup, signOut, onAuthStateChanged };
 export type { User };
+
