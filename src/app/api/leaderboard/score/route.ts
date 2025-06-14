@@ -5,8 +5,16 @@ import { db } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { headers } from 'next/headers';
 
+// Constants from src/lib/types.ts
+const MIN_GRID_SIZE = 3; 
+
 export async function POST(request: NextRequest) {
   try {
+    if (!db) {
+      console.error('[API/leaderboard/score POST] Firestore database instance (db) is not available. Check Firebase Admin SDK initialization in server logs.');
+      return NextResponse.json({ message: 'Server configuration error: Database service not initialized.', error: 'DB_INIT_FAILURE' }, { status: 500 });
+    }
+
     const { gridSize, moveCount } = await request.json();
 
     if (typeof gridSize !== 'number' || typeof moveCount !== 'number' || gridSize < MIN_GRID_SIZE || moveCount <= 0) {
@@ -17,6 +25,8 @@ export async function POST(request: NextRequest) {
     const ipAddress = (headerList.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
 
     if (!ipAddress) {
+      // This case is unlikely as x-forwarded-for or a direct IP should almost always be present.
+      console.warn('[API/leaderboard/score POST] Could not determine user IP from headers.');
       return NextResponse.json({ message: 'Could not determine user IP.' }, { status: 400 });
     }
 
@@ -30,7 +40,6 @@ export async function POST(request: NextRequest) {
     const userQuery = await usersRef.where('ipAddress', '==', ipAddress).limit(1).get();
 
     if (userQuery.empty) {
-      // New user, generate username
       const newUserId = await db.runTransaction(async (transaction) => {
         const metadataDoc = await transaction.get(metadataRef);
         let currentMaxId = 0;
@@ -50,7 +59,6 @@ export async function POST(request: NextRequest) {
       userId = userData.userId;
     }
 
-    // Record score
     const userLeaderboardDocRef = leaderboardRef.doc(username);
     const userLeaderboardDoc = await userLeaderboardDocRef.get();
 
@@ -79,10 +87,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, username, message: shouldUpdate ? 'Score updated!' : 'Score recorded, but not better than previous.' }, { status: 200 });
 
   } catch (error) {
-    console.error('Error submitting score:', error);
+    console.error('[API/leaderboard/score POST] Error submitting score:', (error as Error).stack || error);
     return NextResponse.json({ message: 'Failed to submit score.', error: (error as Error).message }, { status: 500 });
   }
 }
-
-// Constants from src/lib/types.ts (cannot import directly in API route easily without module aliasing complexities for this simple case)
-const MIN_GRID_SIZE = 3;
