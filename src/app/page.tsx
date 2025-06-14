@@ -4,70 +4,71 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-maze/LeaderboardTable";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Zap, ListChecks, Trophy, RefreshCw, Gamepad2 } from "lucide-react";
+import { Zap, ListChecks, Gamepad2, UserCircle } from "lucide-react";
 import { getInitialRules, MIN_GRID_SIZE } from "@/lib/types";
 
 export default function WelcomePage() {
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(true);
-  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
+  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
-  const initialRules = getInitialRules(MIN_GRID_SIZE); // Get rules for base grid size
+  const initialRules = getInitialRules(MIN_GRID_SIZE);
 
-  const fetchLeaderboard = useCallback(async () => {
-    setIsLeaderboardLoading(true);
-    setLeaderboardError(null);
+  const fetchCurrentUser = useCallback(async () => {
+    setIsUserLoading(true);
     try {
-      const response = await fetch('/api/leaderboard');
+      // Call the score endpoint with dummy data to trigger username assignment/retrieval
+      const response = await fetch('/api/leaderboard/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gridSize: 0, moveCount: 0 }), // Dummy data
+      });
       if (!response.ok) {
-        let errorText = `Failed to fetch leaderboard: ${response.status} ${response.statusText}`;
+        let errorText = `Failed to fetch user: ${response.status} ${response.statusText}`;
         try {
           const errorData = await response.json();
           errorText = errorData.message || errorData.error || errorText;
-          if (errorData.guidance) {
-            // console.warn("Server guidance:", errorData.guidance);
-          }
         } catch (e) {
            try {
             const rawText = await response.text();
-            errorText += `\nServer Response (first 200 chars): ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+            errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
           } catch (textError) {
-            // Ignore if text cannot be read
+            // Ignore
           }
         }
-        console.warn(`Welcome Page: Leaderboard API Error - ${errorText}`);
-        setLeaderboardError(errorText);
+        console.warn(`Welcome Page: User Fetch API Error - ${errorText}`);
         toast({
-          title: "Leaderboard Error",
-          description: errorText.split('\n')[0], // Show only primary error message
+          title: "User Fetch Error",
+          description: errorText.split('\n')[0],
           variant: "destructive",
         });
       } else {
-        const data: LeaderboardEntry[] = await response.json();
-        setLeaderboardEntries(data);
+        const data = await response.json();
+        if (data.username) {
+          setCurrentUser(data.username);
+        } else {
+          throw new Error("Username not found in API response.");
+        }
       }
     } catch (networkOrOtherError) {
-      console.error("Welcome Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
-      const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
-      setLeaderboardError(errorMessage);
+      console.error("Welcome Page: User Fetch/Network Error:", networkOrOtherError);
+      const errorMessage = (networkOrOtherError as Error).message || "Could not fetch user due to a network or unexpected error.";
       toast({
-        title: "Leaderboard Error",
+        title: "User Fetch Error",
         description: errorMessage,
         variant: "destructive",
       });
     } finally {
-      setIsLeaderboardLoading(false);
+      setIsUserLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 md:p-8 bg-background text-foreground">
@@ -84,13 +85,20 @@ export default function WelcomePage() {
         <p className="text-lg sm:text-xl text-muted-foreground mt-3 sm:mt-4">
           The unsolvable puzzle where rules change with every move!
         </p>
+        {isUserLoading && <p className="text-sm text-accent mt-2">Loading user...</p>}
+        {currentUser && !isUserLoading && (
+          <div className="mt-4 flex items-center justify-center text-md text-accent">
+            <UserCircle className="mr-2 h-5 w-5" />
+            Playing as: {currentUser}
+          </div>
+        )}
       </motion.header>
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-full max-w-4xl space-y-8 md:space-y-10"
+        className="w-full max-w-xl space-y-8 md:space-y-10"
       >
         <Card className="shadow-xl border-primary/30">
           <CardHeader>
@@ -119,22 +127,6 @@ export default function WelcomePage() {
             </Button>
           </Link>
         </div>
-
-        <Card className="shadow-xl border-primary/30">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl sm:text-3xl text-primary font-headline flex items-center">
-              <Trophy className="mr-3 h-7 w-7 text-accent" />
-              Top Players
-            </CardTitle>
-            <Button onClick={fetchLeaderboard} variant="outline" size="sm" disabled={isLeaderboardLoading} className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-              <RefreshCw className={`mr-2 h-4 w-4 ${isLeaderboardLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <LeaderboardTable entries={leaderboardEntries} isLoading={isLeaderboardLoading} error={leaderboardError} />
-          </CardContent>
-        </Card>
       </motion.div>
 
       <footer className="text-center text-xs sm:text-sm text-muted-foreground mt-10 py-4">

@@ -23,7 +23,9 @@ export async function POST(request: NextRequest) {
 
     if (!ipAddress) {
       console.warn('[API/leaderboard/score POST] Could not determine user IP from headers.');
-      return NextResponse.json({ message: 'Could not determine user IP.' }, { status: 400 });
+      // Still proceed to try and generate/fetch username if possible, but flag the issue.
+      // For now, let's return an error if IP is absolutely missing as username generation depends on it.
+      return NextResponse.json({ message: 'Could not determine user IP. Username cannot be assigned.' }, { status: 400 });
     }
 
     const usersRef = db.collection('users');
@@ -54,11 +56,18 @@ export async function POST(request: NextRequest) {
 
     const { gridSize, moveCount } = await request.json();
 
-    if (typeof gridSize !== 'number' || typeof moveCount !== 'number' || gridSize < MIN_GRID_SIZE || moveCount <= 0) {
-      return NextResponse.json({ message: 'Invalid score data. Score not recorded.', username }, { status: 400 });
+    // If gridSize is 0 (or less than MIN_GRID_SIZE), it's a request for username only, don't record score.
+    if (gridSize < MIN_GRID_SIZE || typeof gridSize !== 'number' || typeof moveCount !== 'number' || moveCount <= 0) {
+      // This condition now also catches gridSize === 0 for username retrieval
+      return NextResponse.json({ 
+        success: true, // Indicate success in fetching/assigning username
+        username, 
+        message: 'User identified.' // Or 'Username retrieved.'
+      }, { status: 200 });
     }
 
-    const userLeaderboardDocRef = leaderboardRef.doc(username);
+    // Proceed with score recording only if gridSize is valid for a score
+    const userLeaderboardDocRef = leaderboardRef.doc(username); // Use username as doc ID
     const userLeaderboardDoc = await userLeaderboardDocRef.get();
 
     let shouldUpdate = true;
@@ -75,12 +84,12 @@ export async function POST(request: NextRequest) {
 
     if (shouldUpdate) {
       await userLeaderboardDocRef.set({
-        username,
-        userId,
+        username, // ensure username is part of the doc data
+        userId,   // ensure userId is part of the doc data
         highestLevel: gridSize,
         movesAtHighestLevel: moveCount,
         lastPlayed: FieldValue.serverTimestamp(),
-      }, { merge: true });
+      }, { merge: true }); // merge:true is good practice here
     }
     
     return NextResponse.json({ 
