@@ -9,11 +9,13 @@ import { LeaderboardTable, type LeaderboardEntry } from "@/components/shifting-m
 import { Zap, Gamepad2, Users, AlertTriangle, RefreshCw } from "lucide-react";
 import { getInitialRules, MIN_GRID_SIZE } from "@/lib/types";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WelcomePage() {
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const commonRules = getInitialRules(MIN_GRID_SIZE) + 
     "\n\nThe rules can mutate after every move, making the game unpredictably challenging. The goal is to turn all tiles green.";
@@ -29,7 +31,6 @@ export default function WelcomePage() {
           const errorData = await response.json();
           errorText = errorData.message || errorData.error || errorText;
         } catch (e) {
-          // If response is not JSON, try to get text
           try {
             const rawText = await response.text();
             errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
@@ -37,17 +38,30 @@ export default function WelcomePage() {
             // Ignore if text cannot be read
           }
         }
-        throw new Error(errorText);
+        console.warn(`Welcome Page: Leaderboard API Error - ${errorText}`);
+        setLeaderboardError(errorText);
+        toast({
+          title: "Leaderboard Error",
+          description: errorText.split('\n')[0], // Show only primary error message
+          variant: "destructive",
+        });
+      } else {
+        const data: LeaderboardEntry[] = await response.json();
+        setLeaderboardEntries(data);
       }
-      const data: LeaderboardEntry[] = await response.json();
-      setLeaderboardEntries(data);
-    } catch (error) {
-      console.error("Leaderboard Fetch Error:", error);
-      setLeaderboardError((error as Error).message || "Could not load leaderboard.");
+    } catch (networkOrOtherError) {
+      console.error("Welcome Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
+      const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
+      setLeaderboardError(errorMessage);
+      toast({
+        title: "Leaderboard Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLeaderboardLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchLeaderboard();

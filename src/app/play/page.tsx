@@ -24,7 +24,15 @@ import Link from "next/link";
 
 export default function ShiftingMazePage() {
   const [gridSize, setGridSize] = useState<number>(MIN_GRID_SIZE);
-  const [grid, setGrid] = useState<GridState>(() => createGrid(gridSize));
+  const [grid, setGrid] = useState<GridState>(() => {
+      let initialGrid = createGrid(MIN_GRID_SIZE);
+      if (MIN_GRID_SIZE === 3 && initialGrid.length === 3 && initialGrid[0].length === 3) {
+        initialGrid[0][0] = true;
+        initialGrid[1][1] = true; 
+        initialGrid[2][2] = true;
+      }
+      return initialGrid;
+  });
   const [currentRules, setCurrentRules] = useState<string>(() => getInitialRules(gridSize));
   const [rulesReasoning, setRulesReasoning] = useState<string | undefined>(undefined);
   const [moveCount, setMoveCount] = useState<number>(0);
@@ -52,7 +60,6 @@ export default function ShiftingMazePage() {
           const errorData = await response.json();
           errorText = errorData.message || errorData.error || errorText;
         } catch (e) {
-          // If response is not JSON, try to get text
            try {
             const rawText = await response.text();
             errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
@@ -60,16 +67,24 @@ export default function ShiftingMazePage() {
             // Ignore if text cannot be read
           }
         }
-        throw new Error(errorText);
+        console.warn(`Game Page: Leaderboard API Error - ${errorText}`);
+        setLeaderboardError(errorText);
+        toast({
+          title: "Leaderboard Error",
+          description: errorText.split('\n')[0], // Show only primary error message
+          variant: "destructive",
+        });
+      } else {
+        const data: LeaderboardEntry[] = await response.json();
+        setLeaderboardEntries(data);
       }
-      const data: LeaderboardEntry[] = await response.json();
-      setLeaderboardEntries(data);
-    } catch (error) {
-      console.error("Leaderboard Fetch Error:", error);
-      setLeaderboardError((error as Error).message || "Could not load leaderboard.");
+    } catch (networkOrOtherError) {
+      console.error("Game Page: Leaderboard Fetch/Network Error:", networkOrOtherError);
+      const errorMessage = (networkOrOtherError as Error).message || "Could not load leaderboard due to a network or unexpected error.";
+      setLeaderboardError(errorMessage);
       toast({
         title: "Leaderboard Error",
-        description: (error as Error).message || "Could not load leaderboard.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
