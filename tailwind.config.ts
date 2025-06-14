@@ -88,10 +88,15 @@ export default {
             height: '0',
           },
         },
+        'tile-pop': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.1)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'tile-pop': 'tile-pop 0.3s ease-out',
       },
     },
   },
