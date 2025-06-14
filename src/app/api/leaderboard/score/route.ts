@@ -3,14 +3,12 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { headers } from 'next/headers';
-
-// Constants from src/lib/types.ts
-const MIN_GRID_SIZE = 3; 
+import { MIN_GRID_SIZE } from "@/lib/types";
+import { randomUUID } from 'crypto'; // For generating clientId
 
 export async function POST(request: NextRequest) {
   let username: string | undefined = undefined;
-  let userId: number | undefined = undefined;
+  let clientId: string | undefined = undefined;
 
   try {
     if (!db) {
@@ -18,56 +16,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Server configuration error: Database service not initialized.', error: 'DB_INIT_FAILURE' }, { status: 500 });
     }
 
-    const headerList = headers();
-    const ipAddress = (headerList.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
-
-    if (!ipAddress) {
-      console.warn('[API/leaderboard/score POST] Could not determine user IP from headers.');
-      // Still proceed to try and generate/fetch username if possible, but flag the issue.
-      // For now, let's return an error if IP is absolutely missing as username generation depends on it.
-      return NextResponse.json({ message: 'Could not determine user IP. Username cannot be assigned.' }, { status: 400 });
-    }
+    const requestBody = await request.json();
+    const providedClientId = requestBody.clientId as string | undefined;
+    const { gridSize, moveCount } = requestBody;
 
     const usersRef = db.collection('users');
     const leaderboardRef = db.collection('leaderboard');
-    const metadataRef = db.collection('metadata').doc('gameStats');
 
-    const userQuery = await usersRef.where('ipAddress', '==', ipAddress).limit(1).get();
-
-    if (userQuery.empty) {
-      const newUserId = await db.runTransaction(async (transaction) => {
-        const metadataDoc = await transaction.get(metadataRef);
-        let currentMaxId = 0;
-        if (metadataDoc.exists) {
-          currentMaxId = metadataDoc.data()?.nextUserId || 0;
-        }
-        const nextId = currentMaxId + 1;
-        transaction.set(metadataRef, { nextUserId: nextId }, { merge: true });
-        return nextId;
-      });
-      userId = newUserId;
-      username = `maze${userId}`;
-      await usersRef.doc(username).set({ ipAddress, username, userId, createdAt: FieldValue.serverTimestamp() });
-    } else {
-      const userData = userQuery.docs[0].data();
-      username = userData.username;
-      userId = userData.userId;
+    if (providedClientId) {
+      const userDoc = await usersRef.doc(providedClientId).get();
+      if (userDoc.exists) {
+        clientId = providedClientId;
+        username = userDoc.data()?.username;
+      }
     }
 
-    const { gridSize, moveCount } = await request.json();
-
-    // If gridSize is 0 (or less than MIN_GRID_SIZE), it's a request for username only, don't record score.
-    if (gridSize < MIN_GRID_SIZE || typeof gridSize !== 'number' || typeof moveCount !== 'number' || moveCount <= 0) {
-      // This condition now also catches gridSize === 0 for username retrieval
-      return NextResponse.json({ 
-        success: true, // Indicate success in fetching/assigning username
+    if (!username || !clientId) {
+      // Generate a new clientId and username
+      clientId = randomUUID();
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      username = `MazeRunner${randomSuffix}`;
+      
+      // Ensure username is unique (highly unlikely to collide with UUID, but good for username itself)
+      // For simplicity, we'll assume MazeRunnerXXXX is unique enough for this app's scale.
+      // A more robust system might check for username collisions and regenerate.
+      
+      await usersRef.doc(clientId).set({ 
         username, 
-        message: 'User identified.' // Or 'Username retrieved.'
+        createdAt: FieldValue.serverTimestamp() 
+      });
+      console.log(`[API/leaderboard/score POST] New user created. ClientId: ${clientId}, Username: ${username}`);
+    } else {
+      console.log(`[API/leaderboard/score POST] Existing user identified. ClientId: ${clientId}, Username: ${username}`);
+    }
+
+    // If gridSize is invalid, it's a request for username only, don't record score.
+    if (typeof gridSize !== 'number' || gridSize < MIN_GRID_SIZE || typeof moveCount !== 'number' || moveCount <= 0) {
+      return NextResponse.json({ 
+        success: true, 
+        username, 
+        clientId, // Return clientId to the client
+        message: 'User identified.'
       }, { status: 200 });
     }
 
     // Proceed with score recording only if gridSize is valid for a score
-    const userLeaderboardDocRef = leaderboardRef.doc(username); // Use username as doc ID
+    // (This part is currently not actively used by the UI but kept for future use)
+    const userLeaderboardDocRef = leaderboardRef.doc(clientId); 
     const userLeaderboardDoc = await userLeaderboardDocRef.get();
 
     let shouldUpdate = true;
@@ -84,17 +79,18 @@ export async function POST(request: NextRequest) {
 
     if (shouldUpdate) {
       await userLeaderboardDocRef.set({
-        username, // ensure username is part of the doc data
-        userId,   // ensure userId is part of the doc data
+        username, // ensure username is part of the doc data for display
         highestLevel: gridSize,
         movesAtHighestLevel: moveCount,
         lastPlayed: FieldValue.serverTimestamp(),
-      }, { merge: true }); // merge:true is good practice here
+      }, { merge: true });
+      console.log(`[API/leaderboard/score POST] Score updated for clientId: ${clientId}`);
     }
     
     return NextResponse.json({ 
       success: true, 
-      username, 
+      username,
+      clientId, // Return clientId
       message: shouldUpdate ? 'Score updated!' : 'Score recorded, but not better than previous.' 
     }, { status: 200 });
 
@@ -103,7 +99,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       message: 'Failed to process request.', 
       error: (error as Error).message,
-      username: username // Include username if available, even on error
+      username: username, // Include username if available
+      clientId: clientId,   // Include clientId if available
     }, { status: 500 });
   }
 }

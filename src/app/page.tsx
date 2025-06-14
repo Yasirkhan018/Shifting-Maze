@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Zap, ListChecks, Gamepad2, UserCircle } from "lucide-react";
+import { Zap, ListChecks, Gamepad2, UserCircle, Loader2 } from "lucide-react"; // Added Loader2
 import { getInitialRules, MIN_GRID_SIZE } from "@/lib/types";
+
+const CLIENT_ID_STORAGE_KEY = 'shiftingMazeClientId';
 
 export default function WelcomePage() {
   const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
@@ -17,22 +19,29 @@ export default function WelcomePage() {
 
   const initialRules = getInitialRules(MIN_GRID_SIZE);
 
-  const fetchCurrentUser = useCallback(async () => {
+  const fetchOrAssignUser = useCallback(async () => {
     setIsUserLoading(true);
+    let clientId = null;
+    // Ensure localStorage is accessed only on the client side
+    if (typeof window !== 'undefined') {
+      clientId = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+    }
+
     try {
-      // Call the score endpoint with dummy data to trigger username assignment/retrieval
       const response = await fetch('/api/leaderboard/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gridSize: 0, moveCount: 0 }), // Dummy data
+        // Send clientId (can be null) and dummy score data
+        body: JSON.stringify({ clientId, gridSize: 0, moveCount: 0 }), 
       });
+
       if (!response.ok) {
         let errorText = `Failed to fetch user: ${response.status} ${response.statusText}`;
         try {
           const errorData = await response.json();
           errorText = errorData.message || errorData.error || errorText;
         } catch (e) {
-           try {
+          try {
             const rawText = await response.text();
             errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
           } catch (textError) {
@@ -45,12 +54,16 @@ export default function WelcomePage() {
           description: errorText.split('\n')[0],
           variant: "destructive",
         });
+        setCurrentUser(undefined); // Ensure currentUser is cleared on error
       } else {
         const data = await response.json();
-        if (data.username) {
+        if (data.username && data.clientId) {
           setCurrentUser(data.username);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(CLIENT_ID_STORAGE_KEY, data.clientId);
+          }
         } else {
-          throw new Error("Username not found in API response.");
+          throw new Error("Username or ClientId not found in API response.");
         }
       }
     } catch (networkOrOtherError) {
@@ -61,14 +74,15 @@ export default function WelcomePage() {
         description: errorMessage,
         variant: "destructive",
       });
+      setCurrentUser(undefined); // Ensure currentUser is cleared on error
     } finally {
       setIsUserLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchCurrentUser();
-  }, [fetchCurrentUser]);
+    fetchOrAssignUser();
+  }, [fetchOrAssignUser]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 md:p-8 bg-background text-foreground">
@@ -85,11 +99,22 @@ export default function WelcomePage() {
         <p className="text-lg sm:text-xl text-muted-foreground mt-3 sm:mt-4">
           The unsolvable puzzle where rules change with every move!
         </p>
-        {isUserLoading && <p className="text-sm text-accent mt-2">Loading user...</p>}
+        {isUserLoading && (
+          <div className="mt-4 flex items-center justify-center text-md text-accent">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Identifying you in the maze...
+          </div>
+        )}
         {currentUser && !isUserLoading && (
           <div className="mt-4 flex items-center justify-center text-md text-accent">
             <UserCircle className="mr-2 h-5 w-5" />
             Playing as: {currentUser}
+          </div>
+        )}
+        {!currentUser && !isUserLoading && (
+           <div className="mt-4 flex items-center justify-center text-md text-destructive">
+            <UserCircle className="mr-2 h-5 w-5" />
+            Could not identify user. You can still play.
           </div>
         )}
       </motion.header>
@@ -128,6 +153,8 @@ export default function WelcomePage() {
           </Link>
         </div>
       </motion.div>
+
+      {/* Leaderboard section is removed */}
 
       <footer className="text-center text-xs sm:text-sm text-muted-foreground mt-10 py-4">
         <p>&copy; {new Date().getFullYear()} Shifting Maze. Embrace the chaos.</p>
