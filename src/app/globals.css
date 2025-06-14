@@ -21,13 +21,13 @@ body {
     --primary: 0 0% 0%; /* Black */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 0 0% 96%; /* Off-White / Very Light Gray */
+    --secondary: 0 0% 96%; /* Very Light Gray */
     --secondary-foreground: 0 0% 0%; /* Black */
 
     --muted: 0 0% 94%; /* Light Gray */
     --muted-foreground: 0 0% 25%; /* Dark Gray text on light gray */
 
-    --accent: 0 0% 40%; /* Medium Gray */
+    --accent: 0 0% 50%; /* Medium Gray */
     --accent-foreground: 0 0% 100%; /* White text on medium gray */
 
     --destructive: 0 0% 0%; /* Black */
@@ -70,14 +70,14 @@ body {
     --primary: 0 0% 100%; /* White */
     --primary-foreground: 0 0% 0%; /* Black */
 
-    --secondary: 0 0% 10%; /* Off-Black / Very Dark Gray */
+    --secondary: 0 0% 10%; /* Very Dark Gray */
     --secondary-foreground: 0 0% 100%; /* White */
 
     --muted: 0 0% 15%; /* Dark Gray */
     --muted-foreground: 0 0% 75%; /* Light Gray text on dark gray */
 
-    --accent: 0 0% 60%; /* Medium-Light Gray */
-    --accent-foreground: 0 0% 0%; /* Black text on medium-light gray */
+    --accent: 0 0% 50%; /* Medium Gray */
+    --accent-foreground: 0 0% 0%; /* Black text on medium gray */
 
     --destructive: 0 0% 100%; /* White */
     --destructive-foreground: 0 0% 0%; /* Black */
