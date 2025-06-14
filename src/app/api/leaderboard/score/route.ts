@@ -54,17 +54,10 @@ export async function POST(request: NextRequest) {
 
     const { gridSize, moveCount } = await request.json();
 
-    // Check for valid score data AFTER user identification
     if (typeof gridSize !== 'number' || typeof moveCount !== 'number' || gridSize < MIN_GRID_SIZE || moveCount <= 0) {
-      // Still return username even if score data is invalid for recording
-      return NextResponse.json({ 
-        success: false, // Indicates score was not processed
-        username, 
-        message: 'Username assigned/retrieved. Score not recorded due to invalid data or initial fetch.' 
-      }, { status: 200 }); // Use 200 to indicate user part was okay
+      return NextResponse.json({ message: 'Invalid score data. Score not recorded.', username }, { status: 400 });
     }
 
-    // Proceed with score recording logic
     const userLeaderboardDocRef = leaderboardRef.doc(username);
     const userLeaderboardDoc = await userLeaderboardDocRef.get();
 
@@ -98,13 +91,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('[API/leaderboard/score POST] Error processing request:', (error as Error).stack || error);
-    // If username was determined before error, include it in response
     return NextResponse.json({ 
       message: 'Failed to process request.', 
       error: (error as Error).message,
-      username: username // Include username if available
+      username: username // Include username if available, even on error
     }, { status: 500 });
   }
 }
-
-    
