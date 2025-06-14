@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Zap, ListChecks, Gamepad2, UserCircle, Loader2 } from "lucide-react"; // Added Loader2
+import { Zap, ListChecks, Gamepad2, UserCircle, Loader2, AlertTriangle } from "lucide-react";
 import { getInitialRules, MIN_GRID_SIZE } from "@/lib/types";
 
 const CLIENT_ID_STORAGE_KEY = 'shiftingMazeClientId';
@@ -21,40 +21,48 @@ export default function WelcomePage() {
 
   const fetchOrAssignUser = useCallback(async () => {
     setIsUserLoading(true);
-    let clientId = null;
-    // Ensure localStorage is accessed only on the client side
+    let storedClientId: string | null = null;
     if (typeof window !== 'undefined') {
-      clientId = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+      storedClientId = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
     }
 
     try {
       const response = await fetch('/api/leaderboard/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Send clientId (can be null) and dummy score data
-        body: JSON.stringify({ clientId, gridSize: 0, moveCount: 0 }), 
+        body: JSON.stringify({ clientId: storedClientId, gridSize: 0, moveCount: 0 }), 
       });
 
       if (!response.ok) {
-        let errorText = `Failed to fetch user: ${response.status} ${response.statusText}`;
+        let errorTitle = "User Fetch Error";
+        let errorDescription = `Failed to fetch user: ${response.status} ${response.statusText}`;
+        let errorDetails = "";
+
         try {
           const errorData = await response.json();
-          errorText = errorData.message || errorData.error || errorText;
+          errorDescription = errorData.message || errorData.error || errorDescription;
+          if (errorData.username) console.warn("Username from error response:", errorData.username);
+          if (errorData.clientId) console.warn("ClientId from error response:", errorData.clientId);
+          errorDetails = ` (Details: ${errorData.errorName || 'N/A'})`;
         } catch (e) {
+          // Failed to parse JSON, try to get raw text
           try {
             const rawText = await response.text();
-            errorText += `\nServer Response: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+            errorDescription = `${response.status} ${response.statusText}`;
+            errorDetails = `\nServer Response (limit 200 chars): ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
           } catch (textError) {
-            // Ignore
+            // Fallback if text also fails
+             errorDetails = "\nCould not parse error response from server.";
           }
         }
-        console.warn(`Welcome Page: User Fetch API Error - ${errorText}`);
+        
+        console.error(`Welcome Page: User Fetch API Error - ${errorDescription}${errorDetails}`);
         toast({
-          title: "User Fetch Error",
-          description: errorText.split('\n')[0],
+          title: errorTitle,
+          description: `${errorDescription.split('\n')[0]}${errorDetails.split('\n')[0]}`,
           variant: "destructive",
         });
-        setCurrentUser(undefined); // Ensure currentUser is cleared on error
+        setCurrentUser(undefined);
       } else {
         const data = await response.json();
         if (data.username && data.clientId) {
@@ -62,19 +70,21 @@ export default function WelcomePage() {
           if (typeof window !== 'undefined') {
             localStorage.setItem(CLIENT_ID_STORAGE_KEY, data.clientId);
           }
+          console.log("Welcome Page: User fetched/assigned successfully:", data.username, data.clientId);
         } else {
-          throw new Error("Username or ClientId not found in API response.");
+          console.error("Welcome Page: Username or ClientId not found in successful API response. Data:", data);
+          throw new Error("Username or ClientId missing in API response.");
         }
       }
     } catch (networkOrOtherError) {
-      console.error("Welcome Page: User Fetch/Network Error:", networkOrOtherError);
-      const errorMessage = (networkOrOtherError as Error).message || "Could not fetch user due to a network or unexpected error.";
+      const error = networkOrOtherError as Error;
+      console.error("Welcome Page: User Fetch/Network Error:", error.stack || error);
       toast({
         title: "User Fetch Error",
-        description: errorMessage,
+        description: error.message || "Could not fetch user due to a network or unexpected error.",
         variant: "destructive",
       });
-      setCurrentUser(undefined); // Ensure currentUser is cleared on error
+      setCurrentUser(undefined);
     } finally {
       setIsUserLoading(false);
     }
@@ -105,15 +115,15 @@ export default function WelcomePage() {
             Identifying you in the maze...
           </div>
         )}
-        {currentUser && !isUserLoading && (
+        {!isUserLoading && currentUser && (
           <div className="mt-4 flex items-center justify-center text-md text-accent">
             <UserCircle className="mr-2 h-5 w-5" />
             Playing as: {currentUser}
           </div>
         )}
-        {!currentUser && !isUserLoading && (
+        {!isUserLoading && !currentUser && (
            <div className="mt-4 flex items-center justify-center text-md text-destructive">
-            <UserCircle className="mr-2 h-5 w-5" />
+            <AlertTriangle className="mr-2 h-5 w-5" />
             Could not identify user. You can still play.
           </div>
         )}
@@ -147,14 +157,12 @@ export default function WelcomePage() {
         <div className="text-center">
           <Link href="/play" passHref>
             <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg sm:text-xl px-8 sm:px-10 py-6 sm:py-7 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-150">
-              <Gamepad2 className="mr-3 h-6 w-6 sm:h-7 sm:w-7" />
+              <Gamepad2 className="mr-3 h-6 w-6 sm:h-7 sm:h-7" />
               Start Playing!
             </Button>
           </Link>
         </div>
       </motion.div>
-
-      {/* Leaderboard section is removed */}
 
       <footer className="text-center text-xs sm:text-sm text-muted-foreground mt-10 py-4">
         <p>&copy; {new Date().getFullYear()} Shifting Maze. Embrace the chaos.</p>
