@@ -1,7 +1,6 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, type FirebaseApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -15,13 +14,19 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let app: FirebaseApp;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (e) {
-  console.error("Firebase client initialization error", e);
-  // Fallback or rethrow as needed, for now, app will be undefined if init fails
-  // It's important that the rest of the app can handle 'app' being potentially uninitialized
-  // if it relies on it. Currently, no client-side Firebase services are used.
+if (!getApps().length) {
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (e) {
+    console.error("Firebase client initialization error", e);
+    // app will be undefined if init fails
+  }
+} else {
+  app = getApps()[0];
 }
 
-export { app };
+const auth = getAuth(app!); // Add ! to assert app is initialized, handle error if not
+const googleProvider = new GoogleAuthProvider();
+
+export { app, auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged };
+export type { User };
