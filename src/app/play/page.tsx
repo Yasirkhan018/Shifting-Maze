@@ -290,7 +290,7 @@ export default function ShiftingMazePage() {
         }} />
       
       <footer className="text-center text-xs text-muted-foreground mt-4 py-4">
-        <p>&copy; {new Date().getFullYear()} Shifting Maze. Designed to be delightfully frustrating.</p>
+        <p>&copy; 2025 Shifting Maze. Designed to be delightfully frustrating.</p>
       </footer>
     </div>
   );

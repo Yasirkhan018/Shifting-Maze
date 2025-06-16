@@ -93,7 +93,7 @@ export default function WelcomePage() {
       </motion.div>
 
       <footer className="text-center text-xs sm:text-sm text-muted-foreground mt-10 py-4">
-        <p>&copy; {new Date().getFullYear()} Shifting Maze. Embrace the chaos.</p>
+        <p>&copy; 2025 Shifting Maze. Embrace the chaos.</p>
       </footer>
     </div>
   );
