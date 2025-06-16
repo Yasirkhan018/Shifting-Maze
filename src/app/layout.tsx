@@ -40,7 +40,7 @@ export default function RootLayout({
 
     const timer = setTimeout(() => {
       setIsSplashVisible(false);
-    }, 3000); // Splash screen visible for 3 seconds
+    }, 2000); // Splash screen visible for 2 seconds
 
     return () => clearTimeout(timer);
   }, []);
@@ -50,7 +50,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Pacifico&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <AuthProvider>
@@ -65,7 +65,7 @@ export default function RootLayout({
                 key="splash-screen-container"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.5, delay: 2.5 }} // Starts fading out at 2.5s, finishes by 3s
+                transition={{ duration: 0.5, delay: 1.5 }} // Starts fading out at 1.5s, finishes by 2s
                 className="fixed inset-0 z-[10000] flex items-center justify-center bg-background"
               >
                 <SplashScreen />
