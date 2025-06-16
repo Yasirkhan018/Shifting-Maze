@@ -1,0 +1,3 @@
+# No authorized digital sellers specified for this domain yet.
+# To authorize ad sellers, add their information here, one line per seller.
+# Example: google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

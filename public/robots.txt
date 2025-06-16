@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+# Sitemap: [URL to your sitemap.xml if you have one]
