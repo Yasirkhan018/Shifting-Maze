@@ -18,7 +18,7 @@ export function SplashScreen() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
-        className="mt-1 text-4xl sm:text-5xl text-accent font-greatVibes"
+        className="mt-2 text-4xl sm:text-5xl text-accent font-greatVibes"
       >
         Lale & Co
       </motion.div>
