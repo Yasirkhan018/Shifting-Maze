@@ -18,7 +18,7 @@ export default {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
-        pacifico: ['Pacifico', 'cursive'], // Added Pacifico
+        greatVibes: ['Great Vibes', 'cursive'], // Changed from Pacifico
         code: ['monospace'],
       },
       colors: {
