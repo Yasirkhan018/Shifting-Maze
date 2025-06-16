@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AnalyticsEvents } from '@/components/AnalyticsEvents';
 import { SplashScreen } from '@/components/SplashScreen'; // Import the new component
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react'; // Import Suspense
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Metadata can be defined even with "use client" at the top for the component itself
@@ -56,7 +56,9 @@ export default function RootLayout({
         <AuthProvider>
           {/* Main App Content - always rendered but initially overlaid by splash */}
           {children}
-          <AnalyticsEvents />
+          <Suspense fallback={null}>
+            <AnalyticsEvents />
+          </Suspense>
           <Toaster />
 
           <AnimatePresence>
