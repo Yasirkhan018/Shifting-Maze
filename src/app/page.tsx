@@ -93,7 +93,7 @@ export default function WelcomePage() {
       </motion.div>
 
       <footer className="text-center text-xs sm:text-sm text-muted-foreground mt-10 py-4">
-        <p>Lale &amp; Co | &copy; 2025 Shifting Maze. Embrace the chaos.</p>
+        <p>Lale &amp; Co | &copy; 2025 Shifting Maze.</p>
       </footer>
     </div>
   );
